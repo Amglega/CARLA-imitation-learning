@@ -2,3 +2,5 @@
 */experiments/*
 *.onnx
 *.pth
+*/agents/*
+
