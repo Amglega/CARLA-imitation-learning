@@ -261,8 +261,6 @@ def main():
         actor_list.append(camera)
         print('created %s' % camera.type_id)
 
-
-
         # Path to save the datasets
         current_path = os.getcwd() + "/" + "datasets"
         dataset_path = create_dataset_directory(current_path)

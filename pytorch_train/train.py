@@ -1,10 +1,3 @@
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torchvision
-from torchvision import transforms
-from torch.utils.data import DataLoader, SubsetRandomSampler
-from torch.utils.tensorboard import SummaryWriter
 import os
 from utils.processing import *
 from utils.pilot_net_dataset import PilotNetDataset
@@ -19,6 +12,14 @@ import numpy as np
 from copy import deepcopy
 from tqdm import tqdm
 import csv
+import torch
+import torch.nn as nn
+import torch.optim as optim
+import torchvision
+from torchvision import  models,transforms
+from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.tensorboard import SummaryWriter
+import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -38,6 +39,8 @@ def parse_args():
     parser.add_argument("--save_iter", type=int, default=50, help="Iterations to save the model")
     parser.add_argument("--print_terminal", type=bool, default=False, help="Print progress in terminal")
     parser.add_argument("--seed", type=int, default=123, help="Seed for reproducing")
+    parser.add_argument("--model", type=str, default='pilotnet', help="Model to train")
+    parser.add_argument("--pretrained", type=bool, default=False, help="Specify if the model pretrained weights are loaded")
 
     args = parser.parse_args()
     return args
@@ -81,15 +84,10 @@ if __name__=="__main__":
     mirrored_img = args.mirrored_imgs
     # Device Selection (CPU/GPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    device = torch.device("cpu")
     FLOAT = torch.FloatTensor
 
     # Tensorboard Initialization
     writer = SummaryWriter(log_dir)
-
-    self_path = os.getcwd()
-    writer_output = csv.writer(open(self_path + "/last_train_data.csv", "w"))
-    writer_output.writerow(["epoch", "loss"])
 
     # Define data transformations
     transformations = createTransform(augmentations)
@@ -109,74 +107,101 @@ if __name__=="__main__":
     train_loader = DataLoader(dataset, batch_size=batch_size)
     val_loader = DataLoader(dataset, batch_size=batch_size)
 
-    # Load Model
+    # Load Model    
+    model_name = args.model
+    is_pretrained = args.pretrained
+    model_weights = None
 
-    pilotModel = PilotNet(dataset.image_shape, dataset.num_labels).to(device)
-    if os.path.isfile( model_save_dir + '/pilot_net_model_{}.pth'.format(random_seed)):
-        pilotModel.load_state_dict(torch.load(model_save_dir + '/pilot_net_model_{}.pth'.format(random_seed),map_location=device))
-        best_model = deepcopy(pilotModel)
-        last_epoch = json.load(open(model_save_dir+'/args.json',))['last_epoch']+1
-    else:
-        last_epoch = 0
+    if model_name == 'pilotnet':
+        model = PilotNet(dataset.image_shape, dataset.num_labels).to(device)
+    elif model_name == 'mobilenet_large':
+        if is_pretrained:
+            model_weights = models.MobileNet_V3_Large_Weights.IMAGENET1K_V2 
+        model = models.mobilenet_v3_large(weights=model_weights)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+    elif model_name == 'mobilenet_small':
+        if is_pretrained:
+            model_weights = models.MobileNet_V3_Small_Weights.IMAGENET1K_V1
+        model = models.mobilenet_v3_small(weights=model_weights)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+    elif model_name == 'resnet':
+        if is_pretrained:
+            model_weights = models.ResNet18_Weights.IMAGENET1K_V1
+        model = models.resnet18(weights=model_weights)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 3)
 
+    model.to(device)
+    if os.path.isfile( model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed)):
+        model.load_state_dict(torch.load(model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed),map_location=device))
+        best_model = deepcopy(model)
+
+    # CSV loss log
+    self_path = os.getcwd()
+    writer_output = csv.writer(open(self_path + '/train_data_' + model_name + '_{}'.format(random_seed) + '.csv', "w"))
+    writer_output.writerow(["epoch", "loss"])
+    
     # Loss and optimizer
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(pilotModel.parameters(), lr=learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
     # Train the model
     total_step = len(train_loader)
     global_iter = 0
-    global_val_mse = 0.03
+    global_val_mse = 0.05
 
 
     print("*********** Training Started ************")
 
-    for epoch in range(last_epoch, num_epochs):
-        pilotModel.train()
+    # Store loss values for plotting
+    epoch_losses = []
+
+    for epoch in range(0, num_epochs):
+        model.train()
         train_loss = 0
         for i, (images, labels) in enumerate(train_loader):
             
             images = FLOAT(images).to(device)
-            """
-            imagen= torch.permute(images[0], (1, 2, 0))
-            numpy_array = imagen.numpy()
-            cv2.imshow("train image", numpy_array)
-            cv2.waitKey(0)  
-            print(numpy_array.shape)
-            """
+
             labels = FLOAT(labels.float()).to(device)
+
+            # Zero the optimizer gradients
+            optimizer.zero_grad()
             # Run the forward pass
-            outputs = pilotModel(images)
+            outputs = model(images)
             loss = criterion(outputs, labels)
             current_loss = loss.item()
             train_loss += current_loss
             # Backprop and perform Adam optimisation
-            optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
             if global_iter % save_iter == 0:
-                torch.save(pilotModel.state_dict(), model_save_dir + '/pilot_net_model_{}.pth'.format(random_seed))
+                torch.save(model.state_dict(), model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed))
             global_iter += 1
 
             if print_terminal and (i + 1) % 10 == 0:
                 print('Epoch [{}/{}], Step [{}/{}], Loss: {:.4f}'
                     .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
         
-        # add entry of last epoch                            
+        # Add entry for last epoch                            
         with open(model_save_dir+'/args.json', 'w') as fp:
             json.dump({'last_epoch': epoch}, fp)
-
         writer.add_scalar("performance/train_loss", train_loss/len(train_loader), epoch+1)
+
+        # Save epoch loss
+        epoch_losses.append(train_loss/len(train_loader))
         
         # Validation 
-        pilotModel.eval()
+        model.eval()
         with torch.no_grad():
             val_loss = 0 
             for images, labels in val_loader:
                 images = FLOAT(images).to(device)
                 labels = FLOAT(labels.float()).to(device)
-                outputs = pilotModel(images)
+                outputs = model(images)
                 val_loss += criterion(outputs, labels).item()
                 
             val_loss /= len(val_loader) # take average
@@ -187,8 +212,8 @@ if __name__=="__main__":
         # compare
         if val_loss < global_val_mse:
             global_val_mse = val_loss
-            best_model = deepcopy(pilotModel)
-            torch.save(best_model.state_dict(), model_save_dir + '/pilot_net_model_best_{}.pth'.format(random_seed))
+            best_model = deepcopy(model)
+            torch.save(best_model.state_dict(), model_save_dir + '/' + model_name + '_model_best_{}.pth'.format(random_seed))
             mssg = "Model Improved!!"
         else:
             mssg = "Not Improved!!"
@@ -196,35 +221,30 @@ if __name__=="__main__":
         print('Epoch [{}/{}], Validation Loss: {:.4f}'.format(epoch + 1, num_epochs, val_loss), mssg)
         
 
-    pilotModel = best_model # allot the best model on validation 
+    model = best_model # allot the best model on validation 
     # Test the model
     transformations_val = createTransform([]) 
     
     test_set = PilotNetDataset(args.test_dir, mirrored_img, transformations_val, preprocessing=args.preprocess)
     test_loader = DataLoader(test_set, batch_size=batch_size)
     print("Check performance on testset")
-    pilotModel.eval()
+    model.eval()
     with torch.no_grad():
         test_loss = 0
         for images, labels in tqdm(test_loader):
             images = FLOAT(images).to(device)
             labels = FLOAT(labels.float()).to(device)
-            outputs = pilotModel(images)
+            outputs = model(images)
             test_loss += criterion(outputs, labels).item()
     
     writer.add_scalar('performance/Test_MSE', test_loss/len(test_loader))
     print(f'Test loss: {test_loss/len(test_loader)}')
         
-    # Save the model and plot
-    torch.save(pilotModel.state_dict(), model_save_dir + '/pilot_net_model_{}.pth'.format(random_seed))
-    
-    net_file_name = "mynet_holo.onnx"
-    
-    if torch.cuda.is_available():
-        dummy_input = torch.randn(1, 3, 66, 200,device=torch.device("cuda"))
-        net_file_name = "mynet_holo_gpu" + str(random_seed) + ".onnx"
-    else:
-        dummy_input = torch.randn(1, 3, 66, 200)   
-  
-    dummy_input = torch.randn(1, 3, 66, 200) 
-    torch.onnx.export(pilotModel, dummy_input, net_file_name, verbose=True, export_params=True, opset_version=9, input_names=['input'], output_names=['output'])
+    # Plot loss
+    plt.figure(figsize=(10, 5))
+    plt.plot(range(1, num_epochs + 1), epoch_losses, marker='o')
+    plt.title('Training Loss per Epoch')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.grid(True)
+    plt.show()
