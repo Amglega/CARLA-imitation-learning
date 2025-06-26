@@ -1,16 +1,4 @@
 import os
-from utils.processing import *
-from utils.pilot_net_dataset import PilotNetDataset
-from utils.pilotnet import PilotNet
-from utils.transform_helper import createTransform
-import time
-import argparse
-from PIL import Image
-import cv2
-import json
-import numpy as np
-from copy import deepcopy
-from tqdm import tqdm
 import csv
 import torch
 import torch.nn as nn
@@ -18,8 +6,17 @@ import torch.optim as optim
 import torchvision
 from torchvision import  models,transforms
 from torch.utils.data import DataLoader, SubsetRandomSampler
-from torch.utils.tensorboard import SummaryWriter
 import matplotlib.pyplot as plt
+from utils.processing import *
+from utils.pilot_net_dataset import PilotNetDataset
+from utils.pilotnet import PilotNet
+from utils.transform_helper import createTransform
+import time
+import argparse
+import json
+import numpy as np
+from copy import deepcopy
+from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -85,9 +82,6 @@ if __name__=="__main__":
     # Device Selection (CPU/GPU)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     FLOAT = torch.FloatTensor
-
-    # Tensorboard Initialization
-    writer = SummaryWriter(log_dir)
 
     # Define data transformations
     transformations = createTransform(augmentations)
@@ -156,7 +150,7 @@ if __name__=="__main__":
     print("*********** Training Started ************")
 
     # Store loss values for plotting
-    epoch_losses = []
+    train_epoch_losses = []
 
     for epoch in range(0, num_epochs):
         model.train()
@@ -189,10 +183,9 @@ if __name__=="__main__":
         # Add entry for last epoch                            
         with open(model_save_dir+'/args.json', 'w') as fp:
             json.dump({'last_epoch': epoch}, fp)
-        writer.add_scalar("performance/train_loss", train_loss/len(train_loader), epoch+1)
 
         # Save epoch loss
-        epoch_losses.append(train_loss/len(train_loader))
+        train_epoch_losses.append(train_loss/len(train_loader))
         
         # Validation 
         model.eval()
@@ -205,7 +198,6 @@ if __name__=="__main__":
                 val_loss += criterion(outputs, labels).item()
                 
             val_loss /= len(val_loader) # take average
-            writer.add_scalar("performance/valid_loss", val_loss, epoch+1)
         
             writer_output.writerow([epoch+1,val_loss])
 
@@ -237,14 +229,15 @@ if __name__=="__main__":
             outputs = model(images)
             test_loss += criterion(outputs, labels).item()
     
-    writer.add_scalar('performance/Test_MSE', test_loss/len(test_loader))
     print(f'Test loss: {test_loss/len(test_loader)}')
-        
+
+    
     # Plot loss
     plt.figure(figsize=(10, 5))
-    plt.plot(range(1, num_epochs + 1), epoch_losses, marker='o')
+    plt.plot(range(1, num_epochs + 1), train_epoch_losses, marker='o')
     plt.title('Training Loss per Epoch')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.grid(True)
     plt.show()
+    

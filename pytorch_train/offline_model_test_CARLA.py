@@ -7,6 +7,8 @@ import argparse
 import time
 import cv2
 import torch
+import torch.nn as nn
+import torchvision.models as models
 from torchvision import transforms
 import utils.hal as HAL
 from utils.pilotnet import PilotNet
@@ -28,8 +30,8 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--test_dir", type=str, default= None, help="Directory to find Test Data")
-    parser.add_argument("--net_name", type=str, default=None, help="preprocessing information: choose from crop/nocrop and normal/extreme")
-
+    parser.add_argument("--model_name", type=str, default='pilotnet', help="Model name")
+    parser.add_argument("--saved_model_path", type=str, help="Path to the saved model")
 
     args = parser.parse_args()
     return args
@@ -60,15 +62,39 @@ def main():
     num_labels = 3
     input_size =[66, 200]
 
-    pilotModel = PilotNet(image_shape, num_labels).to(device)
-    pilotModel.load_state_dict(torch.load(args.net_name,map_location=device))
-    pilotModel.eval()
+    # Load the state dictionary from the local .pth file
+    state_dict = torch.load(args.saved_model_path)
+
+    model_name = args.model_name
+
+    if model_name == 'pilotnet':
+        model = PilotNet(image_shape, num_labels)
+    elif model_name == 'mobilenet_large':
+        model = models.mobilenet_v3_large()
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+    elif model_name == 'mobilenet_small':
+        model = models.mobilenet_v3_small()
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+    elif model_name == 'resnet':
+        model = models.resnet18()
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 3)
+    
+    model.to(device)
+
+    # Load the state dictionary into the model
+    model.load_state_dict(state_dict)
+    
+    # Set the model to evaluation mode
+    model.eval()
 
     preprocess = transforms.Compose([
         # convert the frame to a CHW torch tensor for training
         transforms.ToTensor()
     ]) 
-
+    
     num_lines = 0
     with open(path + "/" + args.test_dir + "/data.csv", "rb") as f:
         num_lines = sum(1 for _ in f)
@@ -107,7 +133,6 @@ def main():
         padding_right = 200 - target_width - padding_left
         resized_image = cv2.copyMakeBorder(img_resized.copy(),0,0,padding_left,padding_right,cv2.BORDER_CONSTANT,value=[0, 0, 0])
 
-
         # Display cropped image
         #cv2.imshow("image", resized_image)       
         #cv2.waitKey(0)
@@ -119,10 +144,10 @@ def main():
         # The model can handle multiple images simultaneously so we need to add an
         # empty dimension for the batch.
         # [3, 200, 66] -> [1, 3, 200, 66]
-        input_batch = input_tensor.unsqueeze(0)
+        input_batch = input_tensor.unsqueeze(0).to(device)
         # Inference (min 20hz max 200hz)
 
-        output = pilotModel(input_batch)
+        output = model(input_batch)
 
         if device_type == "cpu":
             net_v_array.append(output[0].detach().numpy()[0])
@@ -197,6 +222,7 @@ def main():
     plt.show()
 
     print("FIN")
+    
 
 
 

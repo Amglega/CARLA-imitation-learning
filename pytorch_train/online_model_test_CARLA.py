@@ -15,9 +15,13 @@ import carla
 import time
 import cv2 as cv
 import csv
+import argparse
 import math
-# Import a basic agent
-from agents.navigation.basic_agent import BasicAgent
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from torchvision import transforms
+from utils.pilotnet import PilotNet
 
 def clamp(value, minimum=0.0, maximum=100.0):
     return max(minimum, min(value, maximum))
@@ -154,8 +158,77 @@ def carla_to_rgb(image):
     array = np.reshape(array, (image.height, image.width, 4))
     return array[:, :, :3]  
 
-def main(dataset_dir):
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
+    parser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
+    parser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
+    parser.add_argument("--vehicle_name", type=str,default='vehicle.mercedes.coupe_2020', help="Car model to load")
     
+    args = parser.parse_args()
+    return args
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--model_name", type=str, default='pilotnet', help="Model name")
+    parser.add_argument("--saved_model_path", type=str, help="Path to the saved model")
+    parser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
+    parser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
+    parser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
+    parser.add_argument("--vehicle_name", type=str,default='vehicle.mercedes.coupe_2020', help="Car model to load")
+    
+    args = parser.parse_args()
+    return args
+
+
+def main():
+    
+
+    args = parse_args()
+
+
+        
+    image_shape = (66, 200, 3)
+    num_labels = 2
+    input_size =[66, 200]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+    preprocess = transforms.Compose([
+            transforms.ToTensor()
+        ])
+    
+    # Load the state dictionary from the local .pth file
+    state_dict = torch.load(args.saved_model_path)
+    model_name = args.model_name
+
+    if model_name == 'pilotnet':
+        model = PilotNet(image_shape, 3).to(device)
+    elif model_name == 'mobilenet_large':
+        model = models.mobilenet_v3_large().to(device)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+    elif model_name == 'mobilenet_small':
+        model = models.mobilenet_v3_small().to(device)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+    elif model_name == 'resnet':
+        model = models.resnet18().to(device)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 3)
+
+    # Load the state dictionary into the model
+    model.load_state_dict(state_dict)
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    print("Model loaded successfully")
+    
+    args = parse_args()
+
     actor_list = []
     iteration = 0
     # In this tutorial script, we are going to add a vehicle to the simulation
@@ -166,11 +239,11 @@ def main(dataset_dir):
         # to the simulator. Here we'll assume the simulator is accepting
         # requests in the localhost at port 2000.
         client = carla.Client('localhost', 2000)
-        client.set_timeout(2.0)
+        client.set_timeout(200.0)
 
         # Once we have a client we can retrieve the world that is currently
         # running.
-        client.load_world_if_different('Town01')
+        client.load_world_if_different(args.town_name)
         world = client.get_world()
 
         weather = Weather(world.get_weather())
@@ -185,9 +258,8 @@ def main(dataset_dir):
 
         # Now let's filter all the blueprints of type 'vehicle' and choose one
         # at random.
-        # 
-        bp = blueprint_library.find('vehicle.mercedes.coupe_2020')
-
+        bp = blueprint_library.find(args.vehicle_name)
+        
         # A blueprint contains the list of attributes that define a vehicle's
         # instance, we can read them and modify some of them. For instance,
         # let's randomize its color.
@@ -197,15 +269,19 @@ def main(dataset_dir):
 
         # Create route from the chosen spawn points
         spawn_points = world.get_map().get_spawn_points()
-        route_1_indices = load_spawn_points("./Town01_spawn_points.csv")
+        route_1_indices = load_spawn_points(args.spawn_points_csv)
 
         # Draw spawn points
-        for ind in route_1_indices:
-            spawn_points[ind].location
-            world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
+        if args.draw_spawn_points:
+            for ind in route_1_indices:
+                spawn_points[ind].location
+                world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
 
         # We choose a random spawn point from the route.
-        spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
+        #spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
+        #spawn_point_1 =  spawn_points[route_1_indices[spawn_point_idx]]
+
+        spawn_point_idx = 0
         spawn_point_1 =  spawn_points[route_1_indices[spawn_point_idx]]
 
         # We tell the world to spawn the vehicle.
@@ -222,74 +298,43 @@ def main(dataset_dir):
         print('created %s' % camera.type_id)
         camera.listen(lambda image: camera_callback(image, camera_img))
 
-        # Path to save the datasets
-        current_path = os.getcwd() + "/" + "datasets"
-        dataset_path = create_dataset_directory(current_path,dataset_dir)
-
-        writer_output = csv.writer(open(dataset_path + "/data.csv", "w"))
-            
-        writer_output.writerow(["image_name","throttle","steer","brake"])
-        
         spectator = world.get_spectator()
         spectator.set_transform(get_transform(vehicle.get_location(), -90))
 
-        # To start a basic agent
-        agent = BasicAgent(vehicle)
-        agent.ignore_traffic_lights(active=True)
-        agent.ignore_stop_signs(active=True)
-
-        destination_idx = spawn_point_idx+1
-        if destination_idx > (len(route_1_indices)-1):
-            destination_idx = 0
-        destination = spawn_points[route_1_indices[destination_idx]].location
-        agent.set_destination(destination)
     
-        random_mode = False
-        random_mode_period = 6
-        change_to_auto_time = 1
-        next_random_mode_time = time.time() + random_mode_period
-        random_timer_end = next_random_mode_time + change_to_auto_time
-        prev_time = time.time()
-
         frequency = 60
-        
-        while 1:
+
+        while 1 and iteration < 1000:
         
             init_time = time.time()
+            image = camera_img[0]
+            if image is not None:
+                image = carla_to_rgb(image)
+                cropped_image = image[240:480, 0:640]
 
-            if agent.done():
-                destination_idx += 1
-                if destination_idx > (len(route_1_indices)-1):
-                    destination_idx = 0
-                destination = spawn_points[route_1_indices[destination_idx]].location
-                agent.set_destination(destination)
-            if camera_img is not None:
-                if not random_mode:
-                    control = agent.run_step()
-                    vehicle.apply_control(control) 
-                    image = camera_img[0]
-                    image = carla_to_rgb(image) 
-                    
-                    iteration+=1
-                    cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-                    writer_output.writerow([str(iteration) + '.png', control.throttle, control.steer, control.brake]) 
+                resized_image = cv.resize(cropped_image, (int(input_size[1]), int(input_size[0])))
+
+                input_tensor = preprocess(resized_image).to(device)
+                input_batch = input_tensor.unsqueeze(0)
+
+                output = model(input_batch)
+                if device == "cpu":
+                    net_throttle = output[0].detach().numpy()[0].item()
+                    net_steer = output[0].detach().numpy()[1].item()
+                    net_brake = output[0].detach().numpy()[2].item()
                 else:
-                    control = vehicle.get_control()
-                    # random steer and throttle
-                    control.steer = random.uniform(-0.50, 0.50)  
-                    control.throttle = random.uniform(0.6, 1)  
-                    vehicle.apply_control(control)
-            
-                # Change to random control mode during 1 second
-                if time.time() >= next_random_mode_time:
-                    random_mode = True
-                    next_random_mode_time = time.time() + random_mode_period 
-                    random_timer_end =  time.time() + change_to_auto_time
-                    print("CAMBIO A RANDOM")
-                if  random_mode and time.time() > random_timer_end:
-                    random_mode = False
-                    print("CAMBIO A AUTO")
-                
+                    net_throttle = output.data.cpu().numpy()[0][0].item()
+                    net_steer = output.data.cpu().numpy()[0][1].item()
+                    net_brake = output.data.cpu().numpy()[0][2].item()
+                control = carla.VehicleControl()
+                control.throttle = net_throttle
+                control.steer = net_steer
+                control.brake = 0.0
+                control.manual_gear_shift=True
+                control.gear = 1
+                #print(control)
+                vehicle.apply_control(control) 
+
             elapsed_time = time.time() - init_time
             sleep_time = max(0, 1/frequency - elapsed_time)         
             time.sleep(sleep_time)
@@ -301,12 +346,8 @@ def main(dataset_dir):
         client.apply_batch([carla.command.DestroyActor(x) for x in actor_list])
         print('done.')
 
-        
-    
-
-
 if __name__ == '__main__':
 
-    main("CARLA_dataset_dagger")
+    main()
 
     

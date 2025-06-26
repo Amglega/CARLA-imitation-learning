@@ -23,7 +23,6 @@ from datetime import datetime
 import cv2 as cv
 from rclpy.executors import MultiThreadedExecutor
 import csv
-import argparse
 import math
 # Import a basic agent
 from agents.navigation.basic_agent import BasicAgent

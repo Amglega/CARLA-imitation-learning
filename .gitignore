@@ -1,6 +1,6 @@
 */datasets/*
 */experiments/*
-*.onnx
-*.pth
+*/*.onnx
+*/*.pth
 */agents/*
-
+*/__pycache__/*

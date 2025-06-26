@@ -9,14 +9,10 @@
 import glob
 import os
 import sys
-import threading
 import numpy as np
 import random
-import queue
-from sensor_msgs.msg import Image
 import carla
 import time
-from datetime import datetime
 import cv2 as cv
 import csv
 import argparse
@@ -159,8 +155,24 @@ def carla_to_rgb(image):
     array = np.reshape(array, (image.height, image.width, 4))
     return array[:, :, :3]  
 
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
+    parser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
+    parser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
+    parser.add_argument("--vehicle_name", type=str,default='vehicle.mercedes.coupe_2020', help="Car model to load")
+    
+    args = parser.parse_args()
+    return args
+
+
 def main(dataset_dir):
     
+
+    args = parse_args()
+
     actor_list = []
     iteration = 0
     # In this tutorial script, we are going to add a vehicle to the simulation
@@ -175,7 +187,7 @@ def main(dataset_dir):
 
         # Once we have a client we can retrieve the world that is currently
         # running.
-        client.load_world_if_different('Town01')
+        client.load_world_if_different(args.town_name)
         world = client.get_world()
 
         weather = Weather(world.get_weather())
@@ -190,9 +202,8 @@ def main(dataset_dir):
 
         # Now let's filter all the blueprints of type 'vehicle' and choose one
         # at random.
-        # 
-        bp = blueprint_library.find('vehicle.mercedes.coupe_2020')
-
+        bp = blueprint_library.find(args.vehicle_name)
+        
         # A blueprint contains the list of attributes that define a vehicle's
         # instance, we can read them and modify some of them. For instance,
         # let's randomize its color.
@@ -202,12 +213,13 @@ def main(dataset_dir):
 
         # Create route from the chosen spawn points
         spawn_points = world.get_map().get_spawn_points()
-        route_1_indices = load_spawn_points("./Town01_spawn_points.csv")
+        route_1_indices = load_spawn_points(args.spawn_points_csv)
 
         # Draw spawn points
-        for ind in route_1_indices:
-            spawn_points[ind].location
-            world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
+        if args.draw_spawn_points:
+            for ind in route_1_indices:
+                spawn_points[ind].location
+                world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
 
         # We choose a random spawn point from the route.
         spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
@@ -219,7 +231,6 @@ def main(dataset_dir):
         print('created %s' % vehicle.type_id)
 
         # Let's add now a "rgb" camera attached to the vehicle.
-        # We also create a queue to retrieve the camera images
         camera_img = [None]
         camera_bp = blueprint_library.find('sensor.camera.rgb')
         camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
@@ -256,7 +267,7 @@ def main(dataset_dir):
         while 1:
         
             init_time = time.time()
-
+            
             if agent.done():
                 destination_idx += 1
                 if destination_idx > (len(route_1_indices)-1):
@@ -270,11 +281,11 @@ def main(dataset_dir):
                 vehicle.apply_control(control) 
                 image = camera_img[0]
                 image = carla_to_rgb(image)
-                
+                print(type(control))
                 iteration+=1
-                cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-                writer_output.writerow([str(iteration) + '.png', control.throttle, control.steer, control.brake]) 
-
+                #cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
+                #writer_output.writerow([str(iteration) + '.png', control.throttle, control.steer, control.brake]) 
+            
             elapsed_time = time.time() - init_time
             sleep_time = max(0, 1/frequency - elapsed_time)         
             time.sleep(sleep_time)
