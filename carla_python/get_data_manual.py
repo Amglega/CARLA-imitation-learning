@@ -9,7 +9,7 @@
 # Allows controlling a vehicle with a keyboard. For a simpler and more
 # documented example, please take a look at tutorial.py.
 
-# Mdified to enable to save data for imitation learning
+# Modified to enable to save data for imitation learning 2024
 
 """
 Welcome to CARLA manual control.
@@ -96,6 +96,7 @@ import re
 import weakref
 
 import csv
+import cv2 as cv
 
 try:
     import pygame
@@ -214,12 +215,16 @@ class World(object):
         self.imu_sensor = None
         self.radar_sensor = None
         self.camera_manager = None
+        self._car_camera = None
+        self._car_camera_image = [None]
         self._weather_presets = find_weather_presets()
         self._weather_index = 0
         self._actor_filter = args.filter
         self._actor_generation = args.generation
         self._gamma = args.gamma
         self._blueprint = args.vehicle_name
+        self.spawn_points_csv = args.spawn_points_csv
+        self.draw_spawn_points = args.draw_spawn_points
         self.restart()
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
@@ -228,6 +233,7 @@ class World(object):
         self.show_vehicle_telemetry = False
         self.doors_are_open = False
         self.current_map_layer = 0
+
         self.map_layer_names = [
             carla.MapLayer.NONE,
             carla.MapLayer.Buildings,
@@ -241,6 +247,10 @@ class World(object):
             carla.MapLayer.Walls,
             carla.MapLayer.All
         ]
+
+
+    def camera_callback(self, image, return_image):
+        return_image[0] = image
 
     def restart(self):
         self.player_max_speed = 1.589
@@ -256,8 +266,8 @@ class World(object):
                 raise ValueError("Couldn't find any blueprints with the specified filters")
             blueprint = random.choice(blueprint_list)
         else:
-            blueprint_list = self.world.get_blueprint_library()
-            blueprint = blueprint_list.find(self._blueprint)
+            blueprint_library = self.world.get_blueprint_library()
+            blueprint = blueprint_library.find(self._blueprint)
 
         blueprint.set_attribute('role_name', self.actor_role_name)
         if blueprint.has_attribute('terramechanics'):
@@ -277,26 +287,26 @@ class World(object):
         # Spawn the player.
         if self.player is not None:
 
-
             # Create route from the chosen spawn points
             spawn_points = self.world.get_map().get_spawn_points()
-            route_1_indices = load_spawn_points(args.spawn_points_csv)
+            route_1_indices = load_spawn_points(self.spawn_points_csv)
 
             # Draw spawn points
-            if args.draw_spawn_points:
+            if self.draw_spawn_points:
                 for ind in route_1_indices:
-                    spawn_points[ind].location
                     self.world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
 
             # We choose a random spawn point from the route.
             spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
             init_spawn_point =  spawn_points[route_1_indices[spawn_point_idx]]
+
             ###
             #spawn_point = self.player.get_transform()
             #spawn_point.location.z += 2.0
             #spawn_point.rotation.roll = 0.0
             #spawn_point.rotation.pitch = 0.0
             ###
+
             self.destroy()
             self.player = self.world.try_spawn_actor(blueprint, init_spawn_point)
             self.show_vehicle_telemetry = False
@@ -306,9 +316,19 @@ class World(object):
                 print('There are no spawn points available in your map/town.')
                 print('Please add some Vehicle Spawn Point to your UE4 scene.')
                 sys.exit(1)
-            spawn_points = self.map.get_spawn_points()
-            spawn_point = random.choice(spawn_points) if spawn_points else carla.Transform()
-            self.player = self.world.try_spawn_actor(blueprint, spawn_point)
+            spawn_points = self.world.get_map().get_spawn_points()
+            route_1_indices = load_spawn_points(self.spawn_points_csv)
+
+            # Draw spawn points
+            if self.draw_spawn_points:
+                for ind in route_1_indices:
+                    self.world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
+
+            # We choose a random spawn point from the route.
+            spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
+            init_spawn_point =  spawn_points[route_1_indices[spawn_point_idx]]
+
+            self.player = self.world.try_spawn_actor(blueprint, init_spawn_point)
             self.show_vehicle_telemetry = False
             self.modify_vehicle_physics(self.player)
         # Set up the sensors.
@@ -321,11 +341,19 @@ class World(object):
         self.camera_manager.set_sensor(cam_index, notify=False)
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
+        self._car_camera_image = [None]
+
+        camera_bp = blueprint_library.find('sensor.camera.rgb')
+        camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
+        self._car_camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.player)
+        print('created %s' % self._car_camera.type_id)
+        self._car_camera.listen(lambda image: self.camera_callback(image, self._car_camera_image))
 
         if self.sync:
             self.world.tick()
         else:
             self.world.wait_for_tick()
+
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -1259,13 +1287,10 @@ class CameraManager(object):
 
 
 
-
-
-
-
 # ==============================================================================
 # -- load_spawn_points() ---------------------------------------------------------------
 # ==============================================================================
+
 
 def load_spawn_points(file_path):
   """Loads data from a CSV file into a list of lists.
@@ -1286,8 +1311,9 @@ def load_spawn_points(file_path):
 
 
 # ==============================================================================
-# -- load_spawn_points() ---------------------------------------------------------------
+# -- create_dataset_directory() ---------------------------------------------------------------
 # ==============================================================================
+
 
 def create_dataset_directory(path,dir_name="CARLA_dataset"):
   """Creates a numbered directory with the specified name.
@@ -1307,6 +1333,18 @@ def create_dataset_directory(path,dir_name="CARLA_dataset"):
       print(f"Created directory: {directory_name}")
       return directory_name
     i += 1
+
+
+# ==============================================================================
+# -- carla_to_rgb() ---------------------------------------------------------------
+# ==============================================================================
+
+
+def carla_to_rgb(image):
+    array = np.frombuffer(image.raw_data, dtype=np.uint8)
+    array = np.reshape(array, (image.height, image.width, 4))
+    return array[:, :, :3]  
+
 
 # ==============================================================================
 # -- game_loop() ---------------------------------------------------------------
@@ -1376,13 +1414,13 @@ def game_loop(args):
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
-
-            #if self.camera_img is not None:
-                #image = self.camera_img[0]
-                #image = carla_to_rgb(image)
-                #iteration+=1
-                #cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-            writer_output.writerow([str(iteration) + '.png', controller._control.throttle, controller._control.steer , controller._control.brake]) 
+            image = world._car_camera_image[0]
+            
+            if image is not None:
+                image = carla_to_rgb(image)  
+                iteration+=1
+                cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
+                writer_output.writerow([str(iteration) + '.png', controller._control.throttle, controller._control.steer , controller._control.brake]) 
             
 
 

@@ -283,8 +283,8 @@ def main(dataset_dir):
                 image = carla_to_rgb(image)
                 print(type(control))
                 iteration+=1
-                #cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-                #writer_output.writerow([str(iteration) + '.png', control.throttle, control.steer, control.brake]) 
+                cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
+                writer_output.writerow([str(iteration) + '.png', control.throttle, control.steer, control.brake]) 
             
             elapsed_time = time.time() - init_time
             sleep_time = max(0, 1/frequency - elapsed_time)         

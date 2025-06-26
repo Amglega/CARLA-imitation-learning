@@ -188,14 +188,11 @@ def main():
     
 
     args = parse_args()
-
-
-        
+    
     image_shape = (66, 200, 3)
     num_labels = 2
     input_size =[66, 200]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
     preprocess = transforms.Compose([
             transforms.ToTensor()
         ])
