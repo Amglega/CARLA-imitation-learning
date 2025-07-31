@@ -20,91 +20,12 @@ import math
 import torch
 import torch.nn as nn
 import torchvision.models as models
+import timm
 from torchvision import transforms
 from utils.pilotnet import PilotNet
 
-def clamp(value, minimum=0.0, maximum=100.0):
-    return max(minimum, min(value, maximum))
+import sys
 
-
-class Sun(object):
-    def __init__(self, azimuth, altitude):
-        self.azimuth = azimuth
-        self.altitude = altitude
-        self._t = 0.0
-
-    def tick(self, delta_seconds):
-        self._t += 0.008 * delta_seconds
-        self._t %= 2.0 * math.pi
-        self.azimuth += 0.25 * delta_seconds
-        self.azimuth %= 360.0
-        self.altitude = (70 * math.sin(self._t)) - 20
-
-    def __str__(self):
-        return 'Sun(alt: %.2f, azm: %.2f)' % (self.altitude, self.azimuth)
-
-
-class Storm(object):
-    def __init__(self, precipitation):
-        self._t = precipitation if precipitation > 0.0 else -50.0
-        self._increasing = True
-        self.clouds = 0.0
-        self.rain = 0.0
-        self.wetness = 0.0
-        self.puddles = 0.0
-        self.wind = 0.0
-        self.fog = 0.0
-
-    def tick(self, delta_seconds):
-        delta = (1.3 if self._increasing else -1.3) * delta_seconds
-        self._t = clamp(delta + self._t, -250.0, 100.0)
-        self.clouds = clamp(self._t + 40.0, 0.0, 90.0)
-        self.rain = clamp(self._t, 0.0, 80.0)
-        delay = -10.0 if self._increasing else 90.0
-        self.puddles = clamp(self._t + delay, 0.0, 85.0)
-        self.wetness = clamp(self._t * 5, 0.0, 100.0)
-        self.wind = 5.0 if self.clouds <= 20 else 90 if self.clouds >= 70 else 40
-        self.fog = clamp(self._t - 10, 0.0, 30.0)
-        if self._t == -250.0:
-            self._increasing = True
-        if self._t == 100.0:
-            self._increasing = False
-
-    def __str__(self):
-        return 'Storm(clouds=%d%%, rain=%d%%, wind=%d%%)' % (self.clouds, self.rain, self.wind)
-
-
-class Weather(object):
-    def __init__(self, weather):
-        self.weather = weather
-        self._sun = Sun(weather.sun_azimuth_angle, weather.sun_altitude_angle)
-        self._storm = Storm(weather.precipitation)
-
-    def tick(self, delta_seconds):
-        self._sun.tick(delta_seconds)
-        self._storm.tick(delta_seconds)
-        self.weather.cloudiness = self._storm.clouds
-        self.weather.precipitation = self._storm.rain
-        self.weather.precipitation_deposits = self._storm.puddles
-        self.weather.wind_intensity = self._storm.wind
-        self.weather.fog_density = self._storm.fog
-        self.weather.wetness = self._storm.wetness
-        self.weather.sun_azimuth_angle = self._sun.azimuth
-        self.weather.sun_altitude_angle = self._sun.altitude
-
-    def set_weather_atributes(self, clouds=0, rain=0, rain_deposits=0, wind=0, fog=0, wet=0, sun_azimuth=0, sun_altitude=0):
-        
-        self.weather.cloudiness = clouds
-        self.weather.precipitation = rain
-        self.weather.precipitation_deposits = rain_deposits
-        self.weather.wind_intensity = wind
-        self.weather.fog_density = fog
-        self.weather.wetness = wet
-        self.weather.sun_azimuth_angle = sun_azimuth
-        self.weather.sun_altitude_angle = sun_altitude
-
-    def __str__(self):
-        return '%s %s' % (self._sun, self._storm)
 
 
 try:
@@ -114,17 +35,6 @@ try:
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
 except IndexError:
     pass
-
-
-def create_dataset_directory(path,dir_name="CARLA_dataset_dagger"):
-  i = 0
-  while True:
-    directory_name = f"{path}/{dir_name}_{i}"
-    if not os.path.exists(directory_name):
-      os.makedirs(directory_name)
-      print(f"Created directory: {directory_name}")
-      return directory_name
-    i += 1
 
 def load_spawn_points(file_path):
   """Loads data from a CSV file into a list of lists.
@@ -149,7 +59,6 @@ def get_transform(vehicle_location, angle, d=6.4):
     location = carla.Location(d * math.cos(a), d * math.sin(a), 2.0) + vehicle_location
     return carla.Transform(location, carla.Rotation(yaw=180 + angle, pitch=-15))
 
-
 def camera_callback(image, return_image):
     return_image[0] = image
 
@@ -173,7 +82,7 @@ def parse_args():
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--model_name", type=str, default='pilotnet', help="Model name")
+    parser.add_argument("--model", type=str, default='pilotnet', help="Model type")
     parser.add_argument("--saved_model_path", type=str, help="Path to the saved model")
     parser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
     parser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
@@ -183,6 +92,46 @@ def parse_args():
     args = parser.parse_args()
     return args
 
+
+def calculate_sides(hypotenuse, angle):
+  """
+  Calculates the two sides of a right triangle given the hypotenuse and an angle.
+
+  Args:
+    hypotenuse: The length of the hypotenuse of the triangle.
+    represents the distance we need to be from the car
+    angle: The angle of the triangle in degrees.
+    represents the yaw angle of the car we need to be aligned with 
+
+  Returns:
+    A tuple containing the lengths of the two sides of the triangle.
+    which are delta x and y
+  """
+
+  # Convert the angle to radians
+  angle_radians = math.radians(angle)
+
+  # Calculate the opposite side using the sine function
+  opposite_side = hypotenuse * math.sin(angle_radians)
+
+  # Calculate the adjacent side using the cosine function
+  adjacent_side = hypotenuse * math.cos(angle_radians)
+
+  return opposite_side, adjacent_side
+
+
+
+def spectator_function(spectator, vehicle):
+    try:
+        metres_distance = 5
+        vehicle_transform = vehicle.get_transform()
+        y,x = calculate_sides(metres_distance, vehicle_transform.rotation.yaw )  
+        spectator_pos = carla.Transform(vehicle_transform.location + carla.Location(x=-x,y=-y,z=5),
+                                                carla.Rotation( yaw = vehicle_transform.rotation.yaw,pitch = -25))
+        spectator.set_transform(spectator_pos)
+    except:
+        exit()
+        
 
 def main():
     
@@ -198,26 +147,44 @@ def main():
         ])
     
     # Load the state dictionary from the local .pth file
-    state_dict = torch.load(args.saved_model_path)
-    model_name = args.model_name
+    state_dict = torch.load(args.saved_model_path,weights_only=True)
+    model_name = args.model
 
     if model_name == 'pilotnet':
-        model = PilotNet(image_shape, 3).to(device)
+        model = PilotNet(image_shape, 2)
     elif model_name == 'mobilenet_large':
-        model = models.mobilenet_v3_large().to(device)
+        model = models.mobilenet_v3_large()
         num_ftrs = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+        model.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'mobilenet_small':
-        model = models.mobilenet_v3_small().to(device)
+        model = models.mobilenet_v3_small()
         num_ftrs = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+        model.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'resnet':
-        model = models.resnet18().to(device)
+        model = models.resnet18()
         num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 3)
-
+        model.fc = nn.Linear(num_ftrs, 2)
+    elif model_name == 'efficientnet_v2':
+        model = models.efficientnet_v2_s(weights=None)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = torch.nn.Linear(num_ftrs, 2)
+    elif model_name == 'efficientvit':
+        model = timm.create_model('efficientvit_b0', pretrained=False)
+        num_ftrs = model.head.classifier[-1].in_features
+        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
+    elif model_name == 'fastvit':
+        model = timm.create_model('fastvit_mci0', pretrained=False)
+        num_ftrs = model.head.classifier[-1].in_features
+        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
+    else:
+        print("Model not found")
+        exit()
+    
     # Load the state dictionary into the model
     model.load_state_dict(state_dict)
+
+    # Move the model to the selected device (cpu or gpu)
+    model.to(device)
 
     # Set the model to evaluation mode
     model.eval()
@@ -227,7 +194,7 @@ def main():
     args = parse_args()
 
     actor_list = []
-    iteration = 0
+
     # In this tutorial script, we are going to add a vehicle to the simulation
     # and let it drive in autopilot. We will also create a camera attached to
     # that vehicle, and save all the images generated by the camera to disk.
@@ -242,12 +209,6 @@ def main():
         # running.
         client.load_world_if_different(args.town_name)
         world = client.get_world()
-
-        weather = Weather(world.get_weather())
-
-        weather.set_weather_atributes(clouds=20, sun_azimuth=210, sun_altitude=20)
-        world.set_weather(weather.weather)
-               
 
         # The world contains the list blueprints that we can use for adding new
         # actors into the simulation.
@@ -275,10 +236,8 @@ def main():
                 world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
 
         # We choose a random spawn point from the route.
-        #spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
-        #spawn_point_1 =  spawn_points[route_1_indices[spawn_point_idx]]
+        spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
 
-        spawn_point_idx = 0
         spawn_point_1 =  spawn_points[route_1_indices[spawn_point_idx]]
 
         # We tell the world to spawn the vehicle.
@@ -300,15 +259,19 @@ def main():
 
     
         frequency = 60
-
-        while 1 and iteration < 1000:
         
+        control = carla.VehicleControl()
+
+        while 1 :
+            
+
             init_time = time.time()
+            spectator_function(spectator, vehicle)
             image = camera_img[0]
             if image is not None:
                 image = carla_to_rgb(image)
+                image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
                 cropped_image = image[240:480, 0:640]
-
                 resized_image = cv.resize(cropped_image, (int(input_size[1]), int(input_size[0])))
 
                 input_tensor = preprocess(resized_image).to(device)
@@ -318,23 +281,41 @@ def main():
                 if device == "cpu":
                     net_throttle = output[0].detach().numpy()[0].item()
                     net_steer = output[0].detach().numpy()[1].item()
-                    net_brake = output[0].detach().numpy()[2].item()
+                    #net_brake = output[0].detach().numpy()[2].item()
                 else:
                     net_throttle = output.data.cpu().numpy()[0][0].item()
                     net_steer = output.data.cpu().numpy()[0][1].item()
-                    net_brake = output.data.cpu().numpy()[0][2].item()
-                control = carla.VehicleControl()
+                    #net_brake = output.data.cpu().numpy()[0][2].item()
+                
                 control.throttle = net_throttle
                 control.steer = net_steer
-                control.brake = 0.0
+                #control.brake = 0.0
                 control.manual_gear_shift=True
-                control.gear = 1
+                if control.throttle < 0:
+                    control.gear = -1
+                    control.throttle = -control.throttle
+                else:
+                    control.gear = 1
                 #print(control)
                 vehicle.apply_control(control) 
-
+            
             elapsed_time = time.time() - init_time
-            sleep_time = max(0, 1/frequency - elapsed_time)         
-            time.sleep(sleep_time)
+            model_frequency = 1.0 / elapsed_time
+            print(f"Max Inference frequency: {model_frequency:.4f} Hz")
+            #sys.stdout.write(f"\r Max Inference frequency: {model_frequency:.4f} Hz")
+            #sys.stdout.flush()
+            sleep_time = max(0, 1/frequency - elapsed_time)
+            if sleep_time > 0:
+                time.sleep(sleep_time)
+            elapsed_time = time.time() - init_time
+            #model_frequency = 1.0 / elapsed_time
+            
+            #sys.stdout.write(f"\r Max Inference frequency: {model_frequency:.4f} Hz")
+
+            #sys.stdout.flush()
+            
+
+
     except KeyboardInterrupt:
         print('Interrupted')
     finally:

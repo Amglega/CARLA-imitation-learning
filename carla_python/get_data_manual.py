@@ -17,7 +17,7 @@ Welcome to CARLA manual control.
 Use ARROWS or WASD keys for control.
 
     W            : throttle
-    S            : brake
+    S            : throttle + reverse
     A/D          : steer left/right
     Q            : toggle reverse
     Space        : hand-brake
@@ -52,6 +52,7 @@ Use ARROWS or WASD keys for control.
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
     F1           : toggle HUD
+    F2           : Start/Stop recording dataset
     H/?          : toggle help
     ESC          : quit
 """
@@ -110,6 +111,7 @@ try:
     from pygame.locals import K_DOWN
     from pygame.locals import K_ESCAPE
     from pygame.locals import K_F1
+    from pygame.locals import K_F2
     from pygame.locals import K_LEFT
     from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
@@ -125,6 +127,7 @@ try:
     from pygame.locals import K_g
     from pygame.locals import K_h
     from pygame.locals import K_i
+    from pygame.locals import K_j
     from pygame.locals import K_l
     from pygame.locals import K_m
     from pygame.locals import K_n
@@ -209,6 +212,7 @@ class World(object):
             sys.exit(1)
         self.hud = hud
         self.player = None
+        self.data_record = False
         self.collision_sensor = None
         self.lane_invasion_sensor = None
         self.gnss_sensor = None
@@ -216,7 +220,7 @@ class World(object):
         self.radar_sensor = None
         self.camera_manager = None
         self._car_camera = None
-        self._car_camera_image = [None]
+        self.car_camera_image = [None]
         self._weather_presets = find_weather_presets()
         self._weather_index = 0
         self._actor_filter = args.filter
@@ -341,13 +345,13 @@ class World(object):
         self.camera_manager.set_sensor(cam_index, notify=False)
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
-        self._car_camera_image = [None]
+        self.car_camera_image = [None]
 
         camera_bp = blueprint_library.find('sensor.camera.rgb')
         camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
         self._car_camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.player)
         print('created %s' % self._car_camera.type_id)
-        self._car_camera.listen(lambda image: self.camera_callback(image, self._car_camera_image))
+        self._car_camera.listen(lambda image: self.camera_callback(image, self.car_camera_image))
 
         if self.sync:
             self.world.tick()
@@ -466,6 +470,12 @@ class KeyboardControl(object):
                         world.restart()
                 elif event.key == K_F1:
                     world.hud.toggle_info()
+                elif event.key == K_F2:
+                    world.data_record = not world.data_record
+                    if world.data_record:
+                        world.hud.notification("Started recording dataset")
+                    else:
+                        world.hud.notification("Stoped recording dataset")
                 elif event.key == K_v and pygame.key.get_mods() & KMOD_SHIFT:
                     world.next_map_layer(reverse=True)
                 elif event.key == K_v:
@@ -653,38 +663,40 @@ class KeyboardControl(object):
                 world.player.apply_control(self._control)
 
     def _parse_vehicle_keys(self, keys, milliseconds):
-        if keys[K_UP] or keys[K_w]:
-            if not self._ackermann_enabled:
-                self._control.throttle = min(self._control.throttle + 0.1, 0.5)
-            else:
-                self._ackermann_control.speed += round(milliseconds * 0.005, 2) * self._ackermann_reverse
+        if keys[K_UP] or keys[K_w] or keys[K_DOWN] or keys[K_s]:
+            if keys[K_UP] or keys[K_w]:
+                if not self._ackermann_enabled:
+                    self._control.gear = 1
+                    self._control.throttle = min(self._control.throttle + 0.1, 0.5)
+                else:
+                    self._ackermann_control.speed += round(milliseconds * 0.005, 2) * self._ackermann_reverse
+            if keys[K_DOWN] or keys[K_s]:
+                if not self._ackermann_enabled:
+                    self._control.gear = -1
+                    self._control.throttle = min(self._control.throttle + 0.1, 0.5)
+                else:
+                    self._ackermann_control.speed -= min(abs(self._ackermann_control.speed), round(milliseconds * 0.005, 2)) * self._ackermann_reverse
+                    self._ackermann_control.speed = max(0, abs(self._ackermann_control.speed)) * self._ackermann_reverse
         else:
             if not self._ackermann_enabled:
                 self._control.throttle = 0.0
-
-        if keys[K_DOWN] or keys[K_s]:
-            if not self._ackermann_enabled:
-                self._control.brake = min(self._control.brake + 0.2, 1)
-            else:
-                self._ackermann_control.speed -= min(abs(self._ackermann_control.speed), round(milliseconds * 0.005, 2)) * self._ackermann_reverse
-                self._ackermann_control.speed = max(0, abs(self._ackermann_control.speed)) * self._ackermann_reverse
-        else:
-            if not self._ackermann_enabled:
                 self._control.brake = 0
 
         steer_increment = 5e-4 * milliseconds
         if keys[K_LEFT] or keys[K_a]:
             if self._steer_cache > 0:
                 self._steer_cache = 0
-            else:
-                self._steer_cache -= steer_increment
+            
+            self._steer_cache -= steer_increment
         elif keys[K_RIGHT] or keys[K_d]:
             if self._steer_cache < 0:
                 self._steer_cache = 0
-            else:
-                self._steer_cache += steer_increment
-        else:
-            self._steer_cache = 0.0
+            
+            self._steer_cache += steer_increment
+        elif keys[K_j]:
+            self._steer_cache = 0
+        #else:
+        #    self._steer_cache = 0.0
         self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
         if not self._ackermann_enabled:
             self._control.steer = round(self._steer_cache, 1)
@@ -1386,7 +1398,7 @@ def game_loop(args):
 
         writer_output = csv.writer(open(dataset_path + "/data.csv", "w"))
             
-        writer_output.writerow(["image_name","throttle","steer","brake"])
+        writer_output.writerow(["image_name","throttle","steer"])
 
         display = pygame.display.set_mode(
             (args.width, args.height),
@@ -1414,16 +1426,14 @@ def game_loop(args):
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
-            image = world._car_camera_image[0]
+            image = world.car_camera_image[0]
             
-            if image is not None:
+            if image is not None and world.data_record:
                 image = carla_to_rgb(image)  
                 iteration+=1
                 cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-                writer_output.writerow([str(iteration) + '.png', controller._control.throttle, controller._control.steer , controller._control.brake]) 
+                writer_output.writerow([str(iteration) + '.png', controller._control.throttle * controller._control.gear, controller._control.steer]) 
             
-
-
     finally:
 
         if original_settings:

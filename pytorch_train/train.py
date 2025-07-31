@@ -2,8 +2,6 @@ import os
 import csv
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torchvision
 from torchvision import  models,transforms
 from torch.utils.data import DataLoader, SubsetRandomSampler
 import matplotlib.pyplot as plt
@@ -11,17 +9,18 @@ from utils.processing import *
 from utils.pilot_net_dataset import PilotNetDataset
 from utils.pilotnet import PilotNet
 from utils.transform_helper import createTransform
-import time
 import argparse
 import json
 import numpy as np
 from copy import deepcopy
 from tqdm import tqdm
+import timm
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--data_dir", action='append', help="Directory to find Train Data")
+    parser.add_argument("--val_dir", action='append', help="Directory to find Validation Data")
     parser.add_argument("--test_dir", action='append', help="Directory to find Test Data")
     parser.add_argument("--preprocess", action='append', default=None, help="preprocessing information: choose from crop/nocrop and normal/extreme")
     parser.add_argument("--base_dir", type=str, default='exp_random', help="Directory to save everything")
@@ -35,20 +34,22 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--save_iter", type=int, default=50, help="Iterations to save the model")
     parser.add_argument("--print_terminal", type=bool, default=False, help="Print progress in terminal")
-    parser.add_argument("--seed", type=int, default=123, help="Seed for reproducing")
+    parser.add_argument("--seed", type=int, default=123, help="Seed for reproducing results")
     parser.add_argument("--model", type=str, default='pilotnet', help="Model to train")
     parser.add_argument("--pretrained", type=bool, default=False, help="Specify if the model pretrained weights are loaded")
 
     args = parser.parse_args()
     return args
 
-
-def my_loss(output, target):
-    loss = torch.mean((output - target)**2)
-    return loss
-
-
 if __name__=="__main__":
+
+
+
+    model = timm.create_model('fastvit_mci0', pretrained=False)
+    #print(sum(p.numel() for p in model.parameters() if p.requires_grad))
+    print(model)
+    exit()
+
 
     args = parse_args()
 
@@ -56,6 +57,7 @@ if __name__=="__main__":
 
     # Base Directory
     path_to_data = args.data_dir
+    path_to_val_data = args.val_dir
     base_dir = './experiments/'+ args.base_dir + '/'
     model_save_dir = base_dir + 'trained_models'
     log_dir = base_dir + 'log'
@@ -73,7 +75,6 @@ if __name__=="__main__":
     num_epochs = args.num_epochs
     batch_size = args.batch_size
     learning_rate = args.lr
-    val_split = args.test_split
     shuffle_dataset = args.shuffle
     save_iter = args.save_iter
     random_seed = args.seed
@@ -87,19 +88,10 @@ if __name__=="__main__":
     transformations = createTransform(augmentations)
     # Load data
     dataset = PilotNetDataset(path_to_data, mirrored_img, transformations, preprocessing=args.preprocess)
-
-
-    # Creating data indices for training and validation splits:
-    dataset_size = len(dataset)
-    indices = list(range(dataset_size))
-    split = int(np.floor(val_split * dataset_size))
-    if shuffle_dataset :
-        np.random.seed(random_seed)
-        np.random.shuffle(indices)
-    train_indices, val_split = indices[split:], indices[:split]
+    val_dataset = PilotNetDataset(path_to_val_data, mirrored_img, transformations, preprocessing=args.preprocess)
 
     train_loader = DataLoader(dataset, batch_size=batch_size)
-    val_loader = DataLoader(dataset, batch_size=batch_size)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size)
 
     # Load Model    
     model_name = args.model
@@ -113,29 +105,43 @@ if __name__=="__main__":
             model_weights = models.MobileNet_V3_Large_Weights.IMAGENET1K_V2 
         model = models.mobilenet_v3_large(weights=model_weights)
         num_ftrs = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+        model.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'mobilenet_small':
         if is_pretrained:
             model_weights = models.MobileNet_V3_Small_Weights.IMAGENET1K_V1
         model = models.mobilenet_v3_small(weights=model_weights)
         num_ftrs = model.classifier[-1].in_features
-        model.classifier[-1] = nn.Linear(num_ftrs, 3)
+        model.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'resnet':
         if is_pretrained:
             model_weights = models.ResNet18_Weights.IMAGENET1K_V1
         model = models.resnet18(weights=model_weights)
         num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 3)
+        model.fc = nn.Linear(num_ftrs, 2)
+    elif model_name == 'efficientnet_v2':
+        if is_pretrained:
+            model_weights = models.EfficientNet_V2_S_Weights.DEFAULT
+        model = models.efficientnet_v2_s(weights=None)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = torch.nn.Linear(num_ftrs, 2)
+    elif model_name == 'efficientvit':
+        model = timm.create_model('efficientvit_b0', pretrained=False)
+        num_ftrs = model.head.classifier[-1].in_features
+        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
+    elif model_name == 'fastvit':
+        model = timm.create_model('fastvit_mci0', pretrained=False)
+        num_ftrs = model.head.classifier[-1].in_features
+        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
 
     model.to(device)
     if os.path.isfile( model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed)):
-        model.load_state_dict(torch.load(model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed),map_location=device))
+        model.load_state_dict(torch.load(model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed),map_location=device,weights_only=True))
         best_model = deepcopy(model)
 
     # CSV loss log
     self_path = os.getcwd()
     writer_output = csv.writer(open(self_path + '/train_data_' + model_name + '_{}'.format(random_seed) + '.csv', "w"))
-    writer_output.writerow(["epoch", "loss"])
+    writer_output.writerow(["epoch", "train loss", "validation loss"])
     
     # Loss and optimizer
     criterion = nn.MSELoss()
@@ -151,6 +157,7 @@ if __name__=="__main__":
 
     # Store loss values for plotting
     train_epoch_losses = []
+    validation_epoch_losses = []
 
     for epoch in range(0, num_epochs):
         model.train()
@@ -199,7 +206,10 @@ if __name__=="__main__":
                 
             val_loss /= len(val_loader) # take average
         
-            writer_output.writerow([epoch+1,val_loss])
+            validation_epoch_losses.append(val_loss)
+
+        # log loss
+        writer_output.writerow([epoch+1,train_loss/len(train_loader), val_loss])
 
         # compare
         if val_loss < global_val_mse:
@@ -234,10 +244,12 @@ if __name__=="__main__":
     
     # Plot loss
     plt.figure(figsize=(10, 5))
-    plt.plot(range(1, num_epochs + 1), train_epoch_losses, marker='o')
-    plt.title('Training Loss per Epoch')
+    plt.plot(range(1, num_epochs + 1), train_epoch_losses, marker='o',label = "train",)
+    plt.plot(range(1, num_epochs + 1), validation_epoch_losses, marker='o',label = "val",)
+    plt.title('Loss per Epoch')
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.grid(True)
+    plt.legend(loc="upper left")
     plt.show()
     
