@@ -42,15 +42,7 @@ def parse_args():
     return args
 
 if __name__=="__main__":
-
-
-
-    model = timm.create_model('fastvit_mci0', pretrained=False)
-    #print(sum(p.numel() for p in model.parameters() if p.requires_grad))
-    print(model)
-    exit()
-
-
+	
     args = parse_args()
 
     exp_setup = vars(args)
@@ -64,7 +56,7 @@ if __name__=="__main__":
     check_path(base_dir)
     check_path(log_dir)
     check_path(model_save_dir)
-
+        
     print("Saving model in:" + model_save_dir)
 
     with open(base_dir+'args.json', 'w') as fp:
@@ -130,9 +122,8 @@ if __name__=="__main__":
         model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'fastvit':
         model = timm.create_model('fastvit_mci0', pretrained=False)
-        num_ftrs = model.head.classifier[-1].in_features
-        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
-
+        num_ftrs = model.head.fc.in_features
+        model.head.fc = nn.Linear(num_ftrs, 2)
     model.to(device)
     if os.path.isfile( model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed)):
         model.load_state_dict(torch.load(model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed),map_location=device,weights_only=True))
@@ -150,7 +141,7 @@ if __name__=="__main__":
     # Train the model
     total_step = len(train_loader)
     global_iter = 0
-    global_val_mse = 0.05
+    global_val_mse = 0.1
 
 
     print("*********** Training Started ************")

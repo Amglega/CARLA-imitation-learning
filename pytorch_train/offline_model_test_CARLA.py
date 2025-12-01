@@ -91,8 +91,8 @@ def main():
         model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'fastvit':
         model = timm.create_model('fastvit_mci0', pretrained=False)
-        num_ftrs = model.head.classifier[-1].in_features
-        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
+        num_ftrs = model.head.fc.in_features
+        model.head.fc = nn.Linear(num_ftrs, 2)
     
     model.to(device)
 

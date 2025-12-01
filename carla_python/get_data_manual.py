@@ -151,18 +151,15 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
-
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
 # ==============================================================================
-
 
 def find_weather_presets():
     rgx = re.compile('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)')
     name = lambda x: ' '.join(m.group(0) for m in rgx.finditer(x))
     presets = [x for x in dir(carla.WeatherParameters) if re.match('[A-Z].+', x)]
     return [(getattr(carla.WeatherParameters, x), name(x)) for x in presets]
-
 
 def get_actor_display_name(actor, truncate=250):
     name = ' '.join(actor.type_id.replace('_', '.').title().split('.')[1:])
@@ -197,9 +194,9 @@ def get_actor_blueprints(world, filter, generation):
 # -- World ---------------------------------------------------------------------
 # ==============================================================================
 
-
 class World(object):
     def __init__(self, carla_world, hud, args):
+        
         self.world = carla_world
         self.sync = args.sync
         self.actor_role_name = args.rolename
@@ -252,7 +249,6 @@ class World(object):
             carla.MapLayer.All
         ]
 
-
     def camera_callback(self, image, return_image):
         return_image[0] = image
 
@@ -263,14 +259,13 @@ class World(object):
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
         # Get a random blueprint if vehicle not specified.
-        
+        blueprint_library = self.world.get_blueprint_library()
         if self._blueprint is None:
             blueprint_list = get_actor_blueprints(self.world, self._actor_filter, self._actor_generation)     
             if not blueprint_list:
                 raise ValueError("Couldn't find any blueprints with the specified filters")
             blueprint = random.choice(blueprint_list)
         else:
-            blueprint_library = self.world.get_blueprint_library()
             blueprint = blueprint_library.find(self._blueprint)
 
         blueprint.set_attribute('role_name', self.actor_role_name)
@@ -333,8 +328,10 @@ class World(object):
             init_spawn_point =  spawn_points[route_1_indices[spawn_point_idx]]
 
             self.player = self.world.try_spawn_actor(blueprint, init_spawn_point)
+            print(self.player)
             self.show_vehicle_telemetry = False
             self.modify_vehicle_physics(self.player)
+        
         # Set up the sensors.
         self.collision_sensor = CollisionSensor(self.player, self.hud)
         self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
@@ -346,18 +343,16 @@ class World(object):
         actor_type = get_actor_display_name(self.player)
         self.hud.notification(actor_type)
         self.car_camera_image = [None]
-
+        # camera
         camera_bp = blueprint_library.find('sensor.camera.rgb')
         camera_transform = carla.Transform(carla.Location(x=1.5, z=2.4))
         self._car_camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.player)
         print('created %s' % self._car_camera.type_id)
         self._car_camera.listen(lambda image: self.camera_callback(image, self.car_camera_image))
-
         if self.sync:
             self.world.tick()
         else:
             self.world.wait_for_tick()
-
 
     def next_weather(self, reverse=False):
         self._weather_index += -1 if reverse else 1
@@ -1298,7 +1293,6 @@ class CameraManager(object):
             image.save_to_disk('_out/%08d' % image.frame)
 
 
-
 # ==============================================================================
 # -- load_spawn_points() ---------------------------------------------------------------
 # ==============================================================================
@@ -1399,17 +1393,15 @@ def game_loop(args):
         writer_output = csv.writer(open(dataset_path + "/data.csv", "w"))
             
         writer_output.writerow(["image_name","throttle","steer"])
-
+        
         display = pygame.display.set_mode(
             (args.width, args.height),
             pygame.HWSURFACE | pygame.DOUBLEBUF)
         display.fill((0,0,0))
         pygame.display.flip()
-
         hud = HUD(args.width, args.height)
         world = World(sim_world, hud, args)
         controller = KeyboardControl(world, args.autopilot)
-
         if args.sync:
             sim_world.tick()
         else:
@@ -1417,6 +1409,7 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         iteration = 0
+        
         while True:
             if args.sync:
                 sim_world.tick()
@@ -1433,7 +1426,6 @@ def game_loop(args):
                 iteration+=1
                 cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
                 writer_output.writerow([str(iteration) + '.png', controller._control.throttle * controller._control.gear, controller._control.steer]) 
-            
     finally:
 
         if original_settings:
@@ -1507,7 +1499,7 @@ def main():
         help='Activate synchronous mode execution')
     argparser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
     argparser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
-    argparser.add_argument("--vehicle_name", type=str,default=None, help="Car model to load")   
+    argparser.add_argument("--vehicle_name", type=str,default="vehicle.mercedes.coupe_2020", help="Car model to load")   
     argparser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
     argparser.add_argument("--dataset_dir", type=str,default="CARLA_manual_dataset", help="Dataset directory name")
     args = argparser.parse_args()

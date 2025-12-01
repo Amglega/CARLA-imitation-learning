@@ -1,0 +1,42 @@
+* mobilenet_small:
+Tiempo medio:4.029983262943843
+Error medio throttle:0.01256083580304736
+Error medio steer:0.0580786112847438
+Tiempo min:2.626
+Tiempo max:33.986
+
+* mobilenet_large:
+Tiempo medio:4.480716252150805
+Error medio throttle:0.0046118739616529646
+Error medio steer:0.04727640727527024
+Tiempo min:2.971
+Tiempo max:55.
+
+* pilotnet:
+Tiempo medio:1.5892305646801173
+Error medio throttle:0.005488828788401468
+Error medio steer:0.044517545952539886
+Tiempo min:0.682
+Tiempo max:25.067
+
+* resnet:
+Tiempo medio:3.833501955263563
+Error medio throttle:0.009381654429478617
+Error medio steer:0.046586381636843165
+Tiempo min:1.986
+Tiempo max:30.685
+
+* efficientnet_v2:
+Tiempo medio:11.671454246832472
+Error medio throttle:0.011295954232556745
+Error medio steer:0.03744519266974249
+Tiempo min:7.773
+Tiempo max:73.319
+
+
+* efficient_vit:
+Tiempo medio:6.955954950727368
+Error medio throttle:0.009940344475849534
+Error medio steer:0.051091167367001256
+Tiempo min:3.468
+Tiempo max:61.493

@@ -68,16 +68,6 @@ def carla_to_rgb(image):
     return array[:, :, :3]  
 
 
-def parse_args():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
-    parser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
-    parser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
-    parser.add_argument("--vehicle_name", type=str,default='vehicle.mercedes.coupe_2020', help="Car model to load")
-    
-    args = parser.parse_args()
-    return args
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -88,7 +78,8 @@ def parse_args():
     parser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
     parser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
     parser.add_argument("--vehicle_name", type=str,default='vehicle.mercedes.coupe_2020', help="Car model to load")
-    
+    parser.add_argument("--sync", type=bool,default=True, help="Set simulation to synchronous mode")
+
     args = parser.parse_args()
     return args
 
@@ -142,6 +133,7 @@ def main():
     num_labels = 2
     input_size =[66, 200]
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device: " + str(device))
     preprocess = transforms.Compose([
             transforms.ToTensor()
         ])
@@ -174,8 +166,8 @@ def main():
         model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'fastvit':
         model = timm.create_model('fastvit_mci0', pretrained=False)
-        num_ftrs = model.head.classifier[-1].in_features
-        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
+        num_ftrs = model.head.fc.in_features
+        model.head.fc = nn.Linear(num_ftrs, 2)
     else:
         print("Model not found")
         exit()
@@ -260,11 +252,18 @@ def main():
     
         frequency = 60
         
+        settings = world.get_settings()
+        if not settings.synchronous_mode:
+            settings.synchronous_mode = True
+            settings.fixed_delta_seconds = 0.05
+        world.apply_settings(settings)
+
         control = carla.VehicleControl()
+        
+        weather = carla.WeatherParameters.Default
+        world.set_weather(weather)
 
         while 1 :
-            
-
             init_time = time.time()
             spectator_function(spectator, vehicle)
             image = camera_img[0]
@@ -300,22 +299,16 @@ def main():
                 vehicle.apply_control(control) 
             
             elapsed_time = time.time() - init_time
-            model_frequency = 1.0 / elapsed_time
-            print(f"Max Inference frequency: {model_frequency:.4f} Hz")
-            #sys.stdout.write(f"\r Max Inference frequency: {model_frequency:.4f} Hz")
-            #sys.stdout.flush()
             sleep_time = max(0, 1/frequency - elapsed_time)
             if sleep_time > 0:
                 time.sleep(sleep_time)
-            elapsed_time = time.time() - init_time
+            
+            world.tick()
+
             #model_frequency = 1.0 / elapsed_time
-            
             #sys.stdout.write(f"\r Max Inference frequency: {model_frequency:.4f} Hz")
-
             #sys.stdout.flush()
-            
-
-
+        
     except KeyboardInterrupt:
         print('Interrupted')
     finally:

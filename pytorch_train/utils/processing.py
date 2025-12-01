@@ -41,15 +41,14 @@ def get_images(list_images, type_image, array_imgs):
             padding_left = int((200 - target_width)/2)
             padding_right = 200 - target_width - padding_left
             img = cv2.copyMakeBorder(img_resized.copy(),0,0,padding_left,padding_right,cv2.BORDER_CONSTANT,value=[0, 0, 0])
-            
+        
+
+        # Display the loaded image
+        #plt.imshow(img)
+        #plt.axis('off') # Hide axes
+        #plt.title('Dataset Image')
+        #plt.show()
         array_imgs.append(img)
-
-    # Display the loaded image
-    #plt.imshow(cropped_img_rgb)
-    #plt.axis('off') # Hide axes
-    #plt.title('Dataset Image')
-    #plt.show()
-
     return array_imgs
 
 def parse_json(data, array):
