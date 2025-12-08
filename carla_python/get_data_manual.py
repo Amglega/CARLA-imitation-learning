@@ -44,7 +44,7 @@ Use ARROWS or WASD keys for control.
     V            : Select next map layer (Shift+V reverse)
     B            : Load current selected map layer (Shift+B to unload)
 
-    R            : toggle recording images to disk
+    R            : Start/Stop recording dataset
 
     CTRL + R     : toggle recording of simulation (replacing any previous)
     CTRL + P     : start replaying last recorded simulation
@@ -52,7 +52,7 @@ Use ARROWS or WASD keys for control.
     CTRL + -     : decrements the start time of the replay by 1 second (+SHIFT = 10 seconds)
 
     F1           : toggle HUD
-    F2           : Start/Stop recording dataset
+    F2           : toggle recording HUD images to disk
     H/?          : toggle help
     ESC          : quit
 """
@@ -326,7 +326,6 @@ class World(object):
             # We choose a random spawn point from the route.
             spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
             init_spawn_point =  spawn_points[route_1_indices[spawn_point_idx]]
-
             self.player = self.world.try_spawn_actor(blueprint, init_spawn_point)
             print(self.player)
             self.show_vehicle_telemetry = False
@@ -465,7 +464,7 @@ class KeyboardControl(object):
                         world.restart()
                 elif event.key == K_F1:
                     world.hud.toggle_info()
-                elif event.key == K_F2:
+                elif event.key == K_r:
                     world.data_record = not world.data_record
                     if world.data_record:
                         world.hud.notification("Started recording dataset")
@@ -531,9 +530,9 @@ class KeyboardControl(object):
                     if pygame.key.get_mods() & KMOD_CTRL:
                         index_ctrl = 9
                     world.camera_manager.set_sensor(event.key - 1 - K_0 + index_ctrl)
-                elif event.key == K_r and not (pygame.key.get_mods() & KMOD_CTRL):
+                elif event.key == K_F2 and not (pygame.key.get_mods() & KMOD_CTRL):
                     world.camera_manager.toggle_recording()
-                elif event.key == K_r and (pygame.key.get_mods() & KMOD_CTRL):
+                elif event.key == K_F2 and (pygame.key.get_mods() & KMOD_CTRL):
                     if (world.recording_enabled):
                         client.stop_recorder()
                         world.recording_enabled = False
@@ -1365,7 +1364,7 @@ def game_loop(args):
 
     try:
         client = carla.Client(args.host, args.port)
-        client.set_timeout(2000.0)
+        client.set_timeout(20.0)
 
         client.load_world_if_different(args.town_name)
 
@@ -1387,7 +1386,7 @@ def game_loop(args):
                   "experience some issues with the traffic simulation")
 
 
-        current_path = os.getcwd() + "/" + "datasets"
+        current_path = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/" +"common_utils" + "/" + "datasets"
         dataset_path = create_dataset_directory(current_path, args.dataset_dir)
 
         writer_output = csv.writer(open(dataset_path + "/data.csv", "w"))
@@ -1497,7 +1496,7 @@ def main():
         '--sync',
         action='store_true',
         help='Activate synchronous mode execution')
-    argparser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File qith the spawn points of the CARLA map")
+    argparser.add_argument("--spawn_points_csv", type=str,default="./Town01_spawn_points.csv", help="File with the spawn points of the CARLA map")
     argparser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
     argparser.add_argument("--vehicle_name", type=str,default="vehicle.mercedes.coupe_2020", help="Car model to load")   
     argparser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
