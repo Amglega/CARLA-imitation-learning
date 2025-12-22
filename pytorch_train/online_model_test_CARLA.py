@@ -252,15 +252,14 @@ def main():
     
         frequency = 60
         
-        settings = world.get_settings()
-        if not settings.synchronous_mode:
-            settings.synchronous_mode = True
-            settings.fixed_delta_seconds = 0.05
-        world.apply_settings(settings)
+        #settings = world.get_settings()
+        #if not settings.synchronous_mode:
+        #    settings.synchronous_mode = True
+        #    settings.fixed_delta_seconds = 0.05
+        #world.apply_settings(settings)
 
         control = carla.VehicleControl()
-        
-        weather = carla.WeatherParameters.Default
+        weather = carla.WeatherParameters.CloudyNoon
         world.set_weather(weather)
 
         while 1 :
@@ -295,7 +294,7 @@ def main():
                     control.throttle = -control.throttle
                 else:
                     control.gear = 1
-                #print(control)
+                print(control)
                 vehicle.apply_control(control) 
             
             elapsed_time = time.time() - init_time
@@ -303,7 +302,7 @@ def main():
             if sleep_time > 0:
                 time.sleep(sleep_time)
             
-            world.tick()
+            #world.tick()
 
             #model_frequency = 1.0 / elapsed_time
             #sys.stdout.write(f"\r Max Inference frequency: {model_frequency:.4f} Hz")

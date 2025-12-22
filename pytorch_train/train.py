@@ -19,7 +19,7 @@ import timm
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--data_dir", action='append', help="Directory to find Train Data")
+    parser.add_argument("--train_dir", action='append', help="Directory to find Train Data")
     parser.add_argument("--val_dir", action='append', help="Directory to find Validation Data")
     parser.add_argument("--test_dir", action='append', help="Directory to find Test Data")
     parser.add_argument("--preprocess", action='append', default=None, help="preprocessing information: choose from crop/nocrop and normal/extreme")
@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=128, help="Batch size")
     parser.add_argument("--save_iter", type=int, default=50, help="Iterations to save the model")
     parser.add_argument("--print_terminal", type=bool, default=False, help="Print progress in terminal")
-    parser.add_argument("--seed", type=int, default=123, help="Seed for reproducing results")
+    parser.add_argument("--seed", type=int, default=46, help="Seed for reproducing results")
     parser.add_argument("--model", type=str, default='pilotnet', help="Model to train")
     parser.add_argument("--pretrained", type=bool, default=False, help="Specify if the model pretrained weights are loaded")
 
@@ -48,7 +48,7 @@ if __name__=="__main__":
     exp_setup = vars(args)
 
     # Base Directory
-    path_to_data = args.data_dir
+    path_to_data = args.train_dir
     path_to_val_data = args.val_dir
     base_dir = './experiments/'+ args.base_dir + '/'
     model_save_dir = base_dir + 'trained_models'

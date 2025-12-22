@@ -7,4 +7,5 @@ ResNet,True,75.53,121.56,76.13
 ResNet,False,72.30,123.20,80.84
 EfficientNet,True,189.48,504.278,207.96
 EfficientNet,False,188.72,608.91,252.49
+PilotNet,True,11.47,41.51,18.66
 PilotNet,False,12.89,38.25,19.23
