@@ -294,7 +294,7 @@ def main():
                     control.throttle = -control.throttle
                 else:
                     control.gear = 1
-                print(control)
+                #print(control)
                 vehicle.apply_control(control) 
             
             elapsed_time = time.time() - init_time
