@@ -136,7 +136,7 @@ if __name__=="__main__":
     # Loss and optimizer
     criterion = nn.MSELoss()
 
-    print("*********** Training Started with " +  str(num_folds) + " for Cross-Validation ************")
+    print("*********** Training Started with " +  str(num_folds) + " folds for Cross-Validation ************")
 
     # Store cross-validation results
     fold_results = []
@@ -247,6 +247,10 @@ if __name__=="__main__":
     best_fold = min(fold_results, key=lambda x: x['best_val_loss'])
     print(f"\nBest model from Fold {best_fold['fold']} with validation loss: {best_fold['best_val_loss']:.4f}")
     model = best_fold['best_model']
+
+    # Save the best model
+    torch.save(model.state_dict(), model_save_dir + '/' + model_name + '_model_best_{}.pth'.format(random_seed))
+    print("Best model saved at: " + model_save_dir + '/' + model_name + '_model_best_{}.pth'.format(random_seed))
     
     # Test the model
     transformations_val = createTransform([]) 
