@@ -1,0 +1,8 @@
+cuadrados -> imagen -> coordenadas reales
+1,1 -> 625,410 -> 58,58
+3,6 -> 87,275 -> 174,348
+10,1 -> 462,42 -> 580,58
+9,7 -> 147,77 -> 522,406
+5,4 -> 295,144 -> 348,174
+
+# desde el centro de una union a otra hay 58 cm

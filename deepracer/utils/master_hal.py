@@ -1,12 +1,9 @@
 
 import rclpy # Python library for ROS 2
 from rclpy.node import Node # Handles the creation of nodes
-from deepracer_interfaces_pkg.msg import ServoCtrlMsg
-from sensor_msgs.msg import Image
 from rclpy.executors import MultiThreadedExecutor
+from deepracer_interfaces_pkg.msg import ServoCtrlMsg
 import numpy as np
-import cv2
-from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Images
 import math
 from std_msgs.msg import String
 import time
@@ -23,16 +20,10 @@ class DeepRacerNode(Node):
 
         self.target_linear = 0.0
         self.target_rot = 0.0
-        self.action_pub = self.create_publisher(ServoCtrlMsg, ACTION_PUBLISH_TOPIC, 10)    
-        self.timer = self.create_timer(1/frecuency, self.timer_callback)
+        self.action_pub = self.create_publisher(ServoCtrlMsg, ACTION_PUBLISH_TOPIC, 10)
+        self.timer = self.create_timer(1/frecuency, self.timer_callback) 
 
-        #camera atributes:
-        self.vid = cv2.VideoCapture(0)
-        self.image = np.zeros((3, 3, 3), np.uint8)
-        self.img_shape = (640, 480)
-        self.K = np.array([[502.4827132565883, 0.0, 320.49002418357725], [0.0, 502.4546524395416, 238.255941996664], [0.0, 0.0, 1.0]])
-        self.D = np.array([[-0.08703736838521056], [-0.2917938213212864], [0.6776229437062419], [-0.3476415479534463]])
-        
+
     # -- Transform Vel Methods --
     #####################
      
@@ -108,20 +99,6 @@ class DeepRacerNode(Node):
         except Exception as ex:
             self.get_logger().error(f"Failed to publish action: {ex}")
             self.action_publish(ActionValues.DEFAULT_OUTPUT, ActionValues.DEFAULT_OUTPUT)
-        
-        ret, frame = self.vid.read() 
-        map1, map2 = cv2.fisheye.initUndistortRectifyMap(self.K, self.D, np.eye(3), self.K, self.img_shape, cv2.CV_16SC2)
-        self.image = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-
-# -- Camera Method --
-#####################
-
-    def getImage(self):
-        return self.image
-
-#####################
- 
-
 
 
 # -- HAL Functions --

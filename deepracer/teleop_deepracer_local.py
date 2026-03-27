@@ -43,14 +43,14 @@ class GetKeyThread(threading.Thread):
             key = self.getKey()
             
             if key == "w":
-                if linear_speed < 18:
+                if linear_speed < 0:
                     linear_speed = THROTLE_VAL
                     if angular_speed > 0:
                         angular_speed = 1.0
                     else:
                         angular_speed = -1.0
             if key == "s":
-                if linear_speed > -2 :
+                if linear_speed > 0 :
                     linear_speed = -(THROTLE_VAL-0.1)
                     if angular_speed > 0:
                         angular_speed = 1.0

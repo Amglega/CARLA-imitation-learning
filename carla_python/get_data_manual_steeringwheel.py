@@ -11,10 +11,10 @@
 """
 Welcome to CARLA manual control with steering wheel Logitech G29.
 
-To drive start by preshing the brake pedal.
+To drive, start by pressing the accelerator pedal.
 Change your wheel_config.ini according to your steering wheel.
 
-To find out the values of your steering wheel use jstest-gtk in Ubuntu.
+To find out the values of your steering wheel you can use jstest-gtk in Ubuntu.
 
 """
 
@@ -174,6 +174,11 @@ class World(object):
         self._blueprint = args.vehicle_name
         self.spawn_points_csv = args.spawn_points_csv
         self.draw_spawn_points = args.draw_spawn_points
+        self.random_control_enabled = args.random_control
+        self.random_control_active = False
+        self.random_control_start_time = 0.0
+        self.random_control_interval = 15.0  # seconds between random controls
+        self.random_control_duration = 2.0   # duration of random control
         self.restart()
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
@@ -183,6 +188,8 @@ class World(object):
         return_image[0] = image
 
     def restart(self):
+        #Set default weather
+        self.world.set_weather(carla.WeatherParameters.CloudyNoon)
         # Keep same camera config if the camera manager exists.
         cam_index = self.camera_manager.index if self.camera_manager is not None else 0
         cam_pos_index = self.camera_manager.transform_index if self.camera_manager is not None else 0
@@ -305,7 +312,7 @@ class DualControl(object):
         self._joystick.init()
 
         self._parser = ConfigParser()
-        self._parser.read('/home/alex/CARLA_0.9.15/PythonAPI/examples/wheel_config.ini')
+        self._parser.read('./wheel_config.ini')
         self._steer_idx = int(
             self._parser.get('G29 Racing Wheel', 'steering_wheel'))
         self._throttle_idx = int(
@@ -339,6 +346,7 @@ class DualControl(object):
                     self._control.gear = max(-1, self._control.gear - 1)
                 elif event.button == self.manual_mode_idx:
                     self._control.manual_gear_shift = True
+                    self._control.gear = 1
                     world.hud.notification('Manual Transmission')
                 elif event.button == self.automatic_mode_idx:
                     self._control.manual_gear_shift = False
@@ -382,6 +390,7 @@ class DualControl(object):
                 self._control.reverse = self._control.gear < 0
             elif isinstance(self._control, carla.WalkerControl):
                 self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
+            # send control command to the vehicle    
             world.player.apply_control(self._control)
 
     def _parse_vehicle_keys(self, keys, milliseconds):
@@ -425,11 +434,9 @@ class DualControl(object):
         elif brakeCmd > 1:
             brakeCmd = 1
 
-        self._control.steer = steerCmd
+        self._control.steer = float('%.3f'%(steerCmd))
         self._control.brake = brakeCmd
-        self._control.throttle = throttleCmd
-
-        #toggle = jsButtons[self._reverse_idx]
+        self._control.throttle = float('%.3f'%(throttleCmd))
 
         self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
 
@@ -975,13 +982,18 @@ def game_loop(args):
 
         clock = pygame.time.Clock()
         iteration = 0
+        random_control_timer = 0.0
 
         current_path = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/" +"common_utils" + "/" + "datasets"
-        dataset_path = create_dataset_directory(current_path, args.dataset_dir)
+        if args.random_control: 
+            dataset_path = create_dataset_directory(current_path, args.dataset_dir + "_dagger")
+        else:    
+            dataset_path = create_dataset_directory(current_path, args.dataset_dir)
 
         writer_output = csv.writer(open(dataset_path + "/data.csv", "w"))
             
         writer_output.writerow(["image_name","throttle","steer"])
+
         
         while True:
             clock.tick_busy_loop(60)
@@ -992,11 +1004,36 @@ def game_loop(args):
             pygame.display.flip()
             image = world.car_camera_image[0]
             
-            if image is not None and world.data_record:
+            # Timer for random control
+            delta_time = clock.get_time() / 1000.0  # convert to seconds
+            random_control_timer += delta_time
+            
+            is_random_control_active = False
+            if world.random_control_enabled:
+                if random_control_timer >= world.random_control_interval:
+                    world.random_control_active = True
+                    world.random_control_start_time = random_control_timer
+                    random_control_timer = 0.0
+                
+                if world.random_control_active:
+                    elapsed = random_control_timer - (world.random_control_start_time - world.random_control_interval)
+                    if elapsed < world.random_control_duration:
+                        is_random_control_active = True
+                        # Apply random control
+                        random_control = carla.VehicleControl()
+                        random_control.throttle = random.uniform(0.0, 1.0)
+                        random_control.steer = random.uniform(-1.0, 1.0)
+                        #random_control.brake = random.uniform(0.0, 1.0)
+                        world.player.apply_control(random_control)
+                else:
+                    world.random_control_active = False
+        
+            if image is not None and world.data_record and not is_random_control_active:
                 image = carla_to_rgb(image)  
                 iteration+=1
                 cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-                writer_output.writerow([str(iteration) + '.png', controller._control.throttle * controller._control.gear, controller._control.steer]) 
+                writer_output.writerow([str(iteration) + '.png', controller._control.throttle * controller._control.gear, controller._control.steer])
+                #print(f"Throttle: {controller._control.throttle * controller._control.gear}, Steer: {controller._control.steer}")
 
     finally:
 
@@ -1071,6 +1108,7 @@ def main():
     argparser.add_argument("--vehicle_name", type=str,default="vehicle.mercedes.coupe_2020", help="Car model to load")   
     argparser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
     argparser.add_argument("--dataset_dir", type=str,default="CARLA_manual_dataset", help="Dataset directory name")
+    argparser.add_argument("--random_control", type=bool, default=False, help="Enable random control to obtain a Dagger Dataset")
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]

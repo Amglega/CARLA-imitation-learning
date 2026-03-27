@@ -4,3 +4,5 @@
 */*.pth
 */agents/*
 */__pycache__/*
+*/*.avi
+*/deepracer_ws
