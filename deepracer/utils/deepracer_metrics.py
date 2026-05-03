@@ -9,11 +9,12 @@ import os
 import matplotlib.pyplot as plt
 
 class DeepRacerMetrics:
-    def __init__(self, output_path="output.avi", fps=60.0, csv_path="centroid_data.csv", checkpoints_path=None):
+    def __init__(self, output_path="output.avi", fps=60.0, csv_path="centroid_data.csv", checkpoints_path=None, markers_csv_path=None):
         self.output_path = output_path
         self.fps = fps
         self.csv_path = csv_path
         self.checkpoints_path = checkpoints_path
+        self.markers_csv_path = markers_csv_path
         self.csv_file = None
         self.csv_writer = None
         self.fourcc = cv.VideoWriter_fourcc(*'XVID')
@@ -86,7 +87,7 @@ class DeepRacerMetrics:
                     bx, by = mx, my
             best_checkpoint_points_x.append(bx)
             best_checkpoint_points_y.append(by)
-            if best_d < 100.0:
+            if best_d < 200.0:
                 min_dists.append(best_d)
                 if (not covered_checkpoints or covered_checkpoints[-1] != (bx, by)) and (best_d < 1.0):
                     covered_checkpoints.append((bx, by))
@@ -102,21 +103,26 @@ class DeepRacerMetrics:
             waypoints: List of (x, y) tuples representing recorded trajectory centroids
             checkpoints: List of (x, y) tuples representing reference trajectory checkpoints
         """
-        # Define source points (camera perspective) [x, y]
-        src_pts = np.array([
-            [617, 441],  # Bottom right marker
-            [90, 274],   # Bottom left marker
-            [468, 62],   # Upper right marker
-            [150, 80]    # Upper left marker
-        ], dtype=np.float32)
+        # Read marker points from CSV file if available
+        src_pts, dst_pts = self._load_perspective_points()
         
-        # Define real-world coordinates [x, y]
-        dst_pts = np.array([
-            [58, 58],     # Bottom right marker
-            [174, 348],   # Bottom left marker
-            [580, 58],    # Upper right marker
-            [522, 406]    # Upper left marker
-        ], dtype=np.float32)
+        if src_pts is None or dst_pts is None:
+            print("Warning: Could not load perspective points from markers CSV. Using default points.")
+            # Define default source points (camera perspective) [x, y]
+            src_pts = np.array([
+                [617, 441],  # Bottom right marker
+                [90, 274],   # Bottom left marker
+                [468, 62],   # Upper right marker
+                [150, 80]    # Upper left marker
+            ], dtype=np.float32)
+            
+            # Define default real-world coordinates [x, y]
+            dst_pts = np.array([
+                [58, 58],     # Bottom right marker
+                [174, 348],   # Bottom left marker
+                [580, 58],    # Upper right marker
+                [522, 406]    # Upper left marker
+            ], dtype=np.float32)
         
         # Calculate the Perspective Transformation Matrix
         M = cv.getPerspectiveTransform(src_pts, dst_pts)
@@ -177,6 +183,48 @@ class DeepRacerMetrics:
         plt.tight_layout()
         plt.show()
 
+    def _load_perspective_points(self):
+        """
+        Load perspective transformation points from a CSV file.
+        
+        CSV format: marker_id, image_x, image_y, real_x, real_y
+        
+        Returns:
+            (src_pts, dst_pts) as numpy arrays, or (None, None) if file not found or invalid
+        """
+        if self.markers_csv_path is None or not os.path.exists(self.markers_csv_path):
+            return None, None
+        
+        try:
+            src_pts_list = []
+            dst_pts_list = []
+            
+            with open(self.markers_csv_path, 'r') as f:
+                reader = csv.reader(f)
+                next(reader)  # Skip header
+                
+                for row in reader:
+                    if len(row) < 5:
+                        continue
+                    marker_id = int(row[0])
+                    image_x = float(row[1])
+                    image_y = float(row[2])
+                    real_x = float(row[3])
+                    real_y = float(row[4])
+                    
+                    src_pts_list.append([image_x, image_y])
+                    dst_pts_list.append([real_x, real_y])
+            
+            if len(src_pts_list) > 0 and len(dst_pts_list) > 0:
+                src_pts = np.array(src_pts_list, dtype=np.float32)
+                dst_pts = np.array(dst_pts_list, dtype=np.float32)
+                return src_pts, dst_pts
+            else:
+                return None, None
+        except Exception as e:
+            print(f"Error loading perspective points: {e}")
+            return None, None
+
     def compare_trajectory(self):
         # Get position deviations and checkpoint points
         min_dists, best_checkpoint_points_x, best_checkpoint_points_y, covered_checkpoints = \
@@ -208,9 +256,9 @@ class DeepRacerMetrics:
         ax1.plot(checkpoints_x, checkpoints_y, 'r-s', label='Reference Trajectory (Checkpoints)', linewidth=2, markersize=4)
         
         # Draw deviation lines between closest points
-        for i, (cx, cy) in enumerate(checkpoints):
-            ax1.plot([cx, best_checkpoint_points_x[i]], [cy, best_checkpoint_points_y[i]], 
-                    'g--', alpha=0.5, linewidth=1)
+        #for i, (cx, cy) in enumerate(checkpoints):
+        #    ax1.plot([cx, best_checkpoint_points_x[i]], [cy, best_checkpoint_points_y[i]], 
+        #            'g--', alpha=0.5, linewidth=1)
         
         ax1.set_xlabel('X Coordinate')
         ax1.set_ylabel('Y Coordinate')
@@ -336,6 +384,7 @@ if __name__ == "__main__":
     parser.add_argument("--output_path", type=str, default="output.avi", help="Path to save the video")
     parser.add_argument("--csv_path", type=str, default="centroid_data.csv", help="Path to save the centroid data CSV")
     parser.add_argument("--checkpoints_path", type=str, default=None, help="Path to the checkpoints CSV for trajectory comparison")
+    parser.add_argument("--markers_csv_path", type=str, default=None, help="Path to the markers CSV for perspective transformation points")
     args = parser.parse_args()
-    recorder = DeepRacerMetrics(output_path=args.output_path, csv_path=args.csv_path, checkpoints_path=args.checkpoints_path)
+    recorder = DeepRacerMetrics(output_path=args.output_path, csv_path=args.csv_path, checkpoints_path=args.checkpoints_path, markers_csv_path=args.markers_csv_path)
     recorder.run()

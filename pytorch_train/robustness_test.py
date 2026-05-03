@@ -5,18 +5,16 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-# Allows controlling a vehicle with a keyboard. For a simpler and more
-# documented example, please take a look at tutorial.py.
+# Script that test how resilent and robust is a neural network
+# Three types of tests are performed: 
+# 1. Position and orientation deviation
+# 2. Initial speed test
+# 3. Random control test (Dagger)
 
 """
-Welcome to CARLA manual control with steering wheel Logitech G29.
-
-To drive, start by pressing the accelerator pedal.
-Change your wheel_config.ini according to your steering wheel.
-
-To find out the values of your steering wheel you can use jstest-gtk in Ubuntu.
-
+Welcome to CARLA robustness test.
 """
+
 
 from __future__ import print_function
 
@@ -43,11 +41,12 @@ except IndexError:
 # -- imports -------------------------------------------------------------------
 # ==============================================================================
 
-
+# CARLA imports
 import carla
 
 from carla import ColorConverter as cc
 
+# Generic imports
 import argparse
 import collections
 import datetime
@@ -56,18 +55,10 @@ import math
 import random
 import re
 import weakref
-
 import csv
 import cv2 as cv
 
-if sys.version_info >= (3, 0):
-
-    from configparser import ConfigParser
-
-else:
-
-    from ConfigParser import RawConfigParser as ConfigParser
-
+# Pygame imports
 try:
     import pygame
     from pygame.locals import KMOD_CTRL
@@ -106,6 +97,14 @@ try:
 except ImportError:
     raise RuntimeError('cannot import numpy, make sure numpy package is installed')
 
+# Pytorch Imports
+import torch
+import torch.nn as nn
+import torchvision.models as models
+from torchvision import transforms
+# Timm and pilotnet import
+import timm
+from utils.pilotnet import PilotNet
 
 # ==============================================================================
 # -- Global functions ----------------------------------------------------------
@@ -174,11 +173,16 @@ class World(object):
         self._blueprint = args.vehicle_name
         self.spawn_points_csv = args.spawn_points_csv
         self.draw_spawn_points = args.draw_spawn_points
-        self.random_control_enabled = args.random_control
+        self.random_control_enabled = args.random_control_test
         self.random_control_active = False
         self.random_control_start_time = 0.0
         self.random_control_interval = 15.0  # seconds between random controls
         self.random_control_duration = 2.0   # duration of random control
+        self.random_control_intensity = 1.0  # intensity of the random control commmands
+        self.spawn_point_idx = 0  # sequential spawn point index
+        self.position_test_enabled = args.position_test  # position test flag
+        self.position_offset_idx = 0  # index for lateral position offsets [-5, 0, 5, 10]
+        self.position_offsets = [-3.0,-2.0, 0.0]  # lateral offsets in meters
         self.restart()
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
@@ -217,9 +221,8 @@ class World(object):
                 for ind in route_1_indices:
                     self.world.debug.draw_string(spawn_points[ind].location, str(ind), life_time=60000, color=carla.Color(255,0,0))
 
-            # We choose a random spawn point from the route.
-            spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
-            init_spawn_point =  spawn_points[route_1_indices[spawn_point_idx]]
+            # We choose the next spawn point sequentially from the route.
+            init_spawn_point =  spawn_points[route_1_indices[self.spawn_point_idx]]
 
             self.destroy()
             self.player = self.world.try_spawn_actor(blueprint, init_spawn_point)
@@ -227,9 +230,8 @@ class World(object):
             # Create route from the chosen spawn points
             spawn_points = self.world.get_map().get_spawn_points()
             route_1_indices = load_spawn_points(self.spawn_points_csv)
-            # We choose a random spawn point from the route.
-            spawn_point_idx = random.randint(0, len(route_1_indices) - 1)
-            init_spawn_point =  spawn_points[route_1_indices[spawn_point_idx]]
+            # We choose the next spawn point sequentially from the route.
+            init_spawn_point =  spawn_points[route_1_indices[self.spawn_point_idx]]
             self.player = self.world.try_spawn_actor(blueprint, init_spawn_point)
 
         # Set up the sensors.
@@ -248,6 +250,34 @@ class World(object):
         self._car_camera = self.world.spawn_actor(camera_bp, camera_transform, attach_to=self.player)
         print('created %s' % self._car_camera.type_id)
         self._car_camera.listen(lambda image: self.camera_callback(image, self.car_camera_image))
+        
+        # Apply lateral position offset if position_test is enabled
+        if self.position_test_enabled:
+            current_transform = self.player.get_transform()
+            yaw = math.radians(current_transform.rotation.yaw)
+            # Lateral direction is perpendicular to forward direction
+            lateral_direction = carla.Vector3D(-math.sin(yaw), math.cos(yaw), 0.0)
+            # Get the offset for this restart
+            offset_value = self.position_offsets[self.position_offset_idx]
+            # Calculate the new location
+            new_location = current_transform.location + lateral_direction * offset_value
+            # Apply random yaw rotation between -25 and 25 degrees
+            random_yaw = random.uniform(-25.0, 25.0)
+            new_yaw = current_transform.rotation.yaw + random_yaw
+            new_rotation = carla.Rotation(pitch=current_transform.rotation.pitch, 
+                                         yaw=new_yaw, 
+                                         roll=current_transform.rotation.roll)
+            new_transform = carla.Transform(new_location, new_rotation)
+            self.player.set_transform(new_transform)
+            print(f"Position test: Applied lateral offset of {offset_value}m and rotation of {random_yaw:.1f}°")
+            # Increment offset index for next restart
+            self.position_offset_idx = (self.position_offset_idx + 1) % len(self.position_offsets)
+        else:
+            # Increment spawn point index for next restart, wrapping around
+            spawn_points = self.world.get_map().get_spawn_points()
+            route_1_indices = load_spawn_points(self.spawn_points_csv)
+            self.spawn_point_idx = (self.spawn_point_idx + 1) % len(route_1_indices)
+        
         if self.sync:
             self.world.tick()
         else:
@@ -267,6 +297,15 @@ class World(object):
         self.camera_manager.render(display)
         self.hud.render(display)
 
+    def apply_random_velocity(self):
+        """Apply a random target velocity to the vehicle in the direction it is facing."""
+        random_speed = random.uniform(10.0, 30.0)  # Speed in km/h
+        # Get the direction the vehicle is facing from its rotation
+        transform = self.player.get_transform()
+        yaw = math.radians(transform.rotation.yaw)  # Convert degrees to radians
+        forward_direction = carla.Vector3D(math.cos(yaw), math.sin(yaw), 0.0)
+        self.player.set_target_velocity(forward_direction * random_speed)
+
     def destroy(self):
         sensors = [
             self.camera_manager.sensor,
@@ -282,189 +321,8 @@ class World(object):
             self.player.destroy()
 
 # ==============================================================================
-# -- DualControl -----------------------------------------------------------
-# ==============================================================================
-
-
-class DualControl(object):
-    def __init__(self, world, start_in_autopilot):
-        self._autopilot_enabled = start_in_autopilot
-        if isinstance(world.player, carla.Vehicle):
-            self._control = carla.VehicleControl()
-            world.player.set_autopilot(self._autopilot_enabled)
-        elif isinstance(world.player, carla.Walker):
-            self._control = carla.WalkerControl()
-            self._autopilot_enabled = False
-            self._rotation = world.player.get_transform().rotation
-        else:
-            raise NotImplementedError("Actor type not supported")
-        self._steer_cache = 0.0
-        world.hud.notification("Press 'H' or '?' for help.", seconds=4.0)
-
-        # initialize steering wheel
-        pygame.joystick.init()
-
-        joystick_count = pygame.joystick.get_count()
-        if joystick_count > 1:
-            raise ValueError("Please Connect Just One Joystick")
-
-        self._joystick = pygame.joystick.Joystick(0)
-        self._joystick.init()
-
-        self._parser = ConfigParser()
-        self._parser.read('./wheel_config.ini')
-        self._steer_idx = int(
-            self._parser.get('G29 Racing Wheel', 'steering_wheel'))
-        self._throttle_idx = int(
-            self._parser.get('G29 Racing Wheel', 'throttle'))
-        self._brake_idx = int(self._parser.get('G29 Racing Wheel', 'brake'))
-        self._reverse_idx = int(self._parser.get('G29 Racing Wheel', 'reverse'))
-        self._handbrake_idx = int(self._parser.get('G29 Racing Wheel', 'handbrake'))
-        self._gear_up_idx = int(self._parser.get('G29 Racing Wheel', 'gear_up'))
-        self._gear_down_idx = int(self._parser.get('G29 Racing Wheel', 'gear_down'))
-        self.manual_mode_idx = int(self._parser.get('G29 Racing Wheel', 'manual_mode'))
-        self.automatic_mode_idx = int(self._parser.get('G29 Racing Wheel', 'automatic_mode'))
-
-    def parse_events(self, world, clock):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                return True
-            elif event.type == pygame.JOYBUTTONDOWN:
-                if event.button == 0:
-                    world.restart()
-                elif event.button == 1:
-                    world.hud.toggle_info()
-                elif event.button == 2:
-                    world.camera_manager.toggle_camera()
-                elif event.button == 3:
-                    world.next_weather()
-                elif event.button == self._reverse_idx:
-                    self._control.gear = -1 if self._control.gear >= 0 else 1
-                elif event.button == self._gear_up_idx and self._control.manual_gear_shift:
-                    self._control.gear = min(6, self._control.gear + 1)
-                elif event.button == self._gear_down_idx and self._control.manual_gear_shift:
-                    self._control.gear = max(-1, self._control.gear - 1)
-                elif event.button == self.manual_mode_idx:
-                    self._control.manual_gear_shift = True
-                    self._control.gear = 1
-                    world.hud.notification('Manual Transmission')
-                elif event.button == self.automatic_mode_idx:
-                    self._control.manual_gear_shift = False
-                    world.hud.notification('Automatic Transmission')
-                elif event.button == 23:
-                    world.camera_manager.next_sensor()
-                elif event.button == 4:
-                    world.data_record = not world.data_record
-                    if world.data_record:
-                        world.hud.notification("Started recording dataset")
-                    else:
-                        world.hud.notification("Stoped recording dataset")
-
-            elif event.type == pygame.KEYUP:
-                if self._is_quit_shortcut(event.key):
-                    return True
-                elif event.key == K_BACKSPACE:
-                    world.restart()
-                elif event.key == K_F1:
-                    world.hud.toggle_info()
-                elif event.key == K_h or (event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT):
-                    world.hud.help.toggle()
-                elif event.key == K_TAB:
-                    world.camera_manager.toggle_camera()
-                elif event.key == K_c and pygame.key.get_mods() & KMOD_SHIFT:
-                    world.next_weather(reverse=True)
-                elif event.key == K_c:
-                    world.next_weather()
-                elif event.key == K_BACKQUOTE:
-                    world.camera_manager.next_sensor()
-                elif event.key > K_0 and event.key <= K_9:
-                    world.camera_manager.set_sensor(event.key - 1 - K_0)
-                elif event.key == K_F2:
-                    world.camera_manager.toggle_recording()
-                
-    
-        if not self._autopilot_enabled:
-            if isinstance(self._control, carla.VehicleControl):
-                self._parse_vehicle_keys(pygame.key.get_pressed(), clock.get_time())
-                self._parse_vehicle_wheel()
-                self._control.reverse = self._control.gear < 0
-            elif isinstance(self._control, carla.WalkerControl):
-                self._parse_walker_keys(pygame.key.get_pressed(), clock.get_time())
-            # send control command to the vehicle    
-            world.player.apply_control(self._control)
-
-    def _parse_vehicle_keys(self, keys, milliseconds):
-        self._control.throttle = 1.0 if keys[K_UP] or keys[K_w] else 0.0
-        steer_increment = 5e-4 * milliseconds
-        if keys[K_LEFT] or keys[K_a]:
-            self._steer_cache -= steer_increment
-        elif keys[K_RIGHT] or keys[K_d]:
-            self._steer_cache += steer_increment
-        else:
-            self._steer_cache = 0.0
-        self._steer_cache = min(0.7, max(-0.7, self._steer_cache))
-        self._control.steer = round(self._steer_cache, 1)
-        self._control.brake = 1.0 if keys[K_DOWN] or keys[K_s] else 0.0
-        self._control.hand_brake = keys[K_SPACE]
-
-    def _parse_vehicle_wheel(self):
-        numAxes = self._joystick.get_numaxes()
-        jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
-        # print (jsInputs)
-        jsButtons = [float(self._joystick.get_button(i)) for i in
-                     range(self._joystick.get_numbuttons())]
-
-        # Custom function to map range of inputs [1, -1] to outputs [0, 1] i.e 1 from inputs means nothing is pressed
-        # For the steering, it seems fine as it is
-        K1 = 1.0  # 0.55
-        steerCmd = K1 * math.tan(1.1 * jsInputs[self._steer_idx])
-
-        K2 = 1.6  # 1.6
-        throttleCmd = K2 + (2.05 * math.log10(
-            -0.7 * jsInputs[self._throttle_idx] + 1.4) - 1.2) / 0.92
-        if throttleCmd <= 0:
-            throttleCmd = 0
-        elif throttleCmd > 0.5:
-            throttleCmd = 0.5
-
-        brakeCmd = 1.6 + (2.05 * math.log10(
-            -0.7 * jsInputs[self._brake_idx] + 1.4) - 1.2) / 0.92
-        if brakeCmd <= 0:
-            brakeCmd = 0
-        elif brakeCmd > 1:
-            brakeCmd = 1
-
-        self._control.steer = float('%.3f'%(steerCmd))
-        self._control.brake = brakeCmd
-        self._control.throttle = float('%.3f'%(throttleCmd))
-
-        self._control.hand_brake = bool(jsButtons[self._handbrake_idx])
-
-    def _parse_walker_keys(self, keys, milliseconds):
-        self._control.speed = 0.0
-        if keys[K_DOWN] or keys[K_s]:
-            self._control.speed = 0.0
-        if keys[K_LEFT] or keys[K_a]:
-            self._control.speed = .01
-            self._rotation.yaw -= 0.08 * milliseconds
-        if keys[K_RIGHT] or keys[K_d]:
-            self._control.speed = .01
-            self._rotation.yaw += 0.08 * milliseconds
-        if keys[K_UP] or keys[K_w]:
-            self._control.speed = 5.556 if pygame.key.get_mods() & KMOD_SHIFT else 2.778
-        self._control.jump = keys[K_SPACE]
-        self._rotation.yaw = round(self._rotation.yaw, 1)
-        self._control.direction = self._rotation.get_forward_vector()
-
-    @staticmethod
-    def _is_quit_shortcut(key):
-        return (key == K_ESCAPE) or (key == K_q and pygame.key.get_mods() & KMOD_CTRL)
-
-
-# ==============================================================================
 # -- HUD -----------------------------------------------------------------------
 # ==============================================================================
-
 
 class HUD(object):
     def __init__(self, width, height):
@@ -630,7 +488,6 @@ class FadingText(object):
 # ==============================================================================
 # -- HelpText ------------------------------------------------------------------
 # ==============================================================================
-
 
 class HelpText(object):
     def __init__(self, font, width, height):
@@ -921,39 +778,14 @@ def load_spawn_points(file_path):
 
 
 # ==============================================================================
-# -- create_dataset_directory() ---------------------------------------------------------------
+# -- carla_cam_to_image() ---------------------------------------------------------------
 # ==============================================================================
 
 
-def create_dataset_directory(path,dir_name="CARLA_dataset"):
-  """Creates a numbered directory with the specified name.
-
-  Args:
-    path: Path where the directory will be created. 
-    dir_name: The name of the new directory.
-
-  Returns:
-    The path of the new directory.
-  """
-  i = 0
-  while True:
-    directory_name = f"{path}/{dir_name}_{i}"
-    if not os.path.exists(directory_name):
-      os.makedirs(directory_name)
-      print(f"Created directory: {directory_name}")
-      return directory_name
-    i += 1
-
-
-# ==============================================================================
-# -- carla_to_rgb() ---------------------------------------------------------------
-# ==============================================================================
-
-
-def carla_to_rgb(image):
+def carla_cam_to_image(image):
     array = np.frombuffer(image.raw_data, dtype=np.uint8)
     array = np.reshape(array, (image.height, image.width, 4))
-    return array[:, :, :3]  
+    return array[:, :, :3] 
 
 
 # ==============================================================================
@@ -962,9 +794,64 @@ def carla_to_rgb(image):
 
 
 def game_loop(args):
+
     pygame.init()
     pygame.font.init()
     world = None
+
+    
+    image_shape = (66, 200, 3)
+    input_size =[66, 200]
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Using device: " + str(device))
+    preprocess = transforms.Compose([
+            transforms.ToTensor()
+        ])
+    
+    # Load the state dictionary from the local .pth file
+    state_dict = torch.load(args.model_path,weights_only=True)
+    model_name = args.model
+
+    if model_name == 'pilotnet':
+        model = PilotNet(image_shape, 2)
+    elif model_name == 'mobilenet_large':
+        model = models.mobilenet_v3_large()
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 2)
+    elif model_name == 'mobilenet_small':
+        model = models.mobilenet_v3_small()
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = nn.Linear(num_ftrs, 2)
+    elif model_name == 'resnet':
+        model = models.resnet18()
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 2)
+    elif model_name == 'efficientnet_v2':
+        model = models.efficientnet_v2_s(weights=None)
+        num_ftrs = model.classifier[-1].in_features
+        model.classifier[-1] = torch.nn.Linear(num_ftrs, 2)
+    elif model_name == 'efficientvit':
+        model = timm.create_model('efficientvit_b0', pretrained=False)
+        num_ftrs = model.head.classifier[-1].in_features
+        model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
+    elif model_name == 'fastvit':
+        model = timm.create_model('fastvit_sa12', pretrained=False)
+        num_ftrs = model.head.fc.in_features
+        model.head.fc = nn.Linear(num_ftrs, 2)
+    else:
+        print("Model not found")
+        exit()
+    
+    # Load the state dictionary into the model
+    model.load_state_dict(state_dict)
+
+    # Move the model to the selected device (cpu or gpu)
+    model.to(device)
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    print("Model loaded successfully")
 
     try:
         client = carla.Client(args.host, args.port)
@@ -978,70 +865,111 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args)
-        controller = DualControl(world, args.autopilot)
 
         clock = pygame.time.Clock()
-        iteration = 0
+
         random_control_timer = 0.0
-
-        current_path = os.path.abspath(os.path.join(os.getcwd(), os.pardir)) + "/" +"common_utils" + "/" + "datasets"
-        if args.random_control: 
-            dataset_path = create_dataset_directory(current_path, args.dataset_dir + "_dagger")
-        else:    
-            dataset_path = create_dataset_directory(current_path, args.dataset_dir)
-
-        writer_output = csv.writer(open(dataset_path + "/data.csv", "w"))
-            
-        writer_output.writerow(["image_name","throttle","steer"])
-
+        collision_count = 0  # Track number of collisions to detect new ones
+        test_collisions = 0 # Number of total collisions during the test
+        test_timer = 0.0  # Timer for position and velocity tests
+        test_interval = args.test_time  # Restart every 20 seconds during tests
+        restart_count = 0  # Track number of restarts for position/velocity tests
         
         while True:
             clock.tick_busy_loop(60)
-            if controller.parse_events(world, clock):
-                return
             world.tick(clock)
             world.render(display)
             pygame.display.flip()
             image = world.car_camera_image[0]
             
-            # Timer for random control
+            # Timer for random control and tests
             delta_time = clock.get_time() / 1000.0  # convert to seconds
             random_control_timer += delta_time
+            test_timer += delta_time
             
             is_random_control_active = False
+            #Random control logic
             if world.random_control_enabled:
                 if random_control_timer >= world.random_control_interval:
                     world.random_control_active = True
                     world.random_control_start_time = random_control_timer
                     random_control_timer = 0.0
-                
                 if world.random_control_active:
                     elapsed = random_control_timer - (world.random_control_start_time - world.random_control_interval)
                     if elapsed < world.random_control_duration:
                         is_random_control_active = True
                         # Apply random control
                         random_control = carla.VehicleControl()
-                        random_control.throttle = random.uniform(0.0, 1.0)
-                        random_control.steer = random.uniform(-1.0, 1.0)
-                        #random_control.brake = random.uniform(0.0, 1.0)
+                        random_control.throttle = random.uniform(0.0, world.random_control_intensity)
+                        random_control.steer = random.uniform(-world.random_control_intensity, world.random_control_intensity)
                         world.player.apply_control(random_control)
                 else:
                     world.random_control_active = False
         
-            if image is not None and world.data_record and not is_random_control_active:
-                image = carla_to_rgb(image)  
-                iteration+=1
-                cv.imwrite(dataset_path + "/" + str(iteration) + ".png", image)
-                writer_output.writerow([str(iteration) + '.png', controller._control.throttle * controller._control.gear, controller._control.steer])
-                #print(f"Throttle: {controller._control.throttle * controller._control.gear}, Steer: {controller._control.steer}")
-                if iteration % 1000 == 0:
-                    print(f"Recorded:{iteration} data")
+            if image is not None and not is_random_control_active:
+                image = carla_cam_to_image(image)
+                image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+                cropped_image = image[240:480, 0:640]
+                resized_image = cv.resize(cropped_image, (int(input_size[1]), int(input_size[0])))
 
+                input_tensor = preprocess(resized_image).to(device)
+                input_batch = input_tensor.unsqueeze(0)
+
+                output = model(input_batch)
+                if device == "cpu":
+                    net_throttle = output[0].detach().numpy()[0].item()
+                    net_steer = output[0].detach().numpy()[1].item()
+                    #net_brake = output[0].detach().numpy()[2].item()
+                else:
+                    net_throttle = output.data.cpu().numpy()[0][0].item()
+                    net_steer = output.data.cpu().numpy()[0][1].item()
+                    #net_brake = output.data.cpu().numpy()[0][2].item()
+                
+                control = carla.VehicleControl()
+                control.throttle = net_throttle
+                control.steer = net_steer
+                #control.brake = 0.0
+                control.manual_gear_shift=True
+                if control.throttle < 0:
+                    control.gear = -1
+                    control.throttle = -control.throttle
+                else:
+                    control.gear = 1
+                #print(control)
+                world.player.apply_control(control)
+            
+            # Check for collision and restart if one detected
+            current_collisions = len(world.collision_sensor.history)
+            should_restart = False
+            restart_reason = ""
+            
+            if current_collisions > collision_count and not args.random_control_test:
+                collision_count = current_collisions
+                should_restart = True
+                restart_reason = f"Collision detected! Total collisions: {collision_count}"
+                test_collisions += 1
+            
+            # Check for time-based restart during position or velocity tests
+            if (args.position_test or args.velocity_test) and test_timer >= test_interval:
+                should_restart = True
+                restart_reason = f"Time limit reached"
+                test_timer = 0.0
+            # if current_position == init_position :
+
+            
+            if should_restart:
+                print(restart_reason)
+                world.restart()
+                restart_count += 1
+                
+                if args.velocity_test:
+                    world.apply_random_velocity()
+                    print("Applied random velocity to vehicle")
+                if (args.position_test or args.velocity_test) and restart_count >= args.max_restarts:
+                    print(f"Max restarts reached. Ending test.")
+                    print(f"Total collisions of the test: {test_collisions}")
+                    break
     finally:
-
-        if (world and world.recording_enabled):
-            client.stop_recorder()
-
         if world is not None:
             world.destroy()
 
@@ -1109,8 +1037,13 @@ def main():
     argparser.add_argument("--draw_spawn_points", type=bool,default=False, help="Enable or disable the visibility of the spawn points")
     argparser.add_argument("--vehicle_name", type=str,default="vehicle.mercedes.coupe_2020", help="Car model to load")   
     argparser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
-    argparser.add_argument("--dataset_dir", type=str,default="CARLA_manual_dataset", help="Dataset directory name")
-    argparser.add_argument("--random_control", type=bool, default=False, help="Enable random control to obtain a Dagger Dataset")
+    argparser.add_argument("--model", type=str, default='pilotnet', help="Model type")
+    argparser.add_argument("--model_path", type=str, help="Path to the saved model")
+    argparser.add_argument("--test_time", type=float, default=10.0, help="Time to restarrt the simulation")
+    argparser.add_argument("--position_test", type=bool, default=False, help="Enable different starting position to test robustness")
+    argparser.add_argument("--velocity_test", type=bool, default=False, help="Enable different starting velocity to test robustness")
+    argparser.add_argument("--random_control_test", type=bool, default=False, help="Enable random control to test robustness")
+    argparser.add_argument("--max_restarts", type=int, default=5, help="Maximum number of restarts for position/velocity tests (default: 6)")
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
@@ -1123,7 +1056,6 @@ def main():
     print(__doc__)
 
     try:
-
         game_loop(args)
 
     except KeyboardInterrupt:

@@ -42,7 +42,6 @@ def get_images(list_images, type_image, array_imgs):
             padding_right = 200 - target_width - padding_left
             img = cv2.copyMakeBorder(img_resized.copy(),0,0,padding_left,padding_right,cv2.BORDER_CONSTANT,value=[0, 0, 0])
         
-
         # Display the loaded image
         #plt.imshow(img)
         #plt.axis('off') # Hide axes

@@ -5,7 +5,7 @@ from rclpy.executors import MultiThreadedExecutor
 from deepracer_interfaces_pkg.msg import ServoCtrlMsg
 import numpy as np
 import math
-from std_msgs.msg import String
+from std_msgs.msg import Bool, String
 import time
 from datetime import datetime
 from utils.constants import *
@@ -21,6 +21,7 @@ class DeepRacerNode(Node):
         self.target_linear = 0.0
         self.target_rot = 0.0
         self.action_pub = self.create_publisher(ServoCtrlMsg, ACTION_PUBLISH_TOPIC, 10)
+        self.start_record_pub = self.create_publisher(Bool, '/start_record', 10)
         self.timer = self.create_timer(1/frecuency, self.timer_callback) 
 
 
@@ -92,6 +93,16 @@ class DeepRacerNode(Node):
         #self.get_logger().info(f"Publishing to servo: Steering {target_steer} | Throttle {target_speed}")
         self.action_pub.publish(result)
 
+    def publish_start_record(self, start_recording):
+        """Function publishes message to /start_record topic.
+
+        Args:
+            start_recording (bool): True to start recording, False to stop recording.
+        """
+        msg = Bool()
+        msg.data = start_recording
+        self.start_record_pub.publish(msg)
+    
     def timer_callback(self):
         try:
             target_steer, target_speed = self.plan_action()
@@ -116,8 +127,11 @@ def setV(num):
 def setW(num):
     deepracer_node.set_W(num)
 
-def getImage():
-    return deepracer_node.getImage()
+def publish_start_record():
+    deepracer_node.publish_start_record(True)
+
+def publish_stop_record():
+    deepracer_node.publish_start_record(False)
 
     
 #init ros

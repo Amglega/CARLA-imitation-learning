@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import os
 import sys
 import signal
@@ -101,15 +102,24 @@ class GetWheelThread(threading.Thread):
         global Finish_program
         
         print("GetWheelThread started. Press button 0 (or 'q') to exit...")
-        
+        recording_started = False
         try:
             while not Finish_program:
                 # Process pygame events
                 for event in pygame.event.get():
-                    if event.type == pygame.QUIT or (event.type == pygame.JOYBUTTONUP and event.button == 6):
+                    if event.type == pygame.QUIT or (event.type == pygame.JOYBUTTONUP and event.button == 7):
                         print("Exit button pressed")
                         Finish_program = True
                         break
+                    elif event.type == pygame.JOYBUTTONUP:
+                        if event.button == self._manual_mode_idx and not recording_started:
+                            print("Manual mode button pressed - starting recording")
+                            HAL.publish_start_record()
+                            recording_started = True
+                        elif event.button == self._manual_mode_idx and recording_started:
+                            print("Manual mode button pressed - stopping recording")
+                            HAL.publish_stop_record()
+                            recording_started = False
                 
                 # Update wheel inputs continuously
                 if not Finish_program:

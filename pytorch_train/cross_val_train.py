@@ -116,11 +116,11 @@ if __name__=="__main__":
         num_ftrs = model.classifier[-1].in_features
         model.classifier[-1] = torch.nn.Linear(num_ftrs, 2)
     elif model_name == 'efficientvit':
-        model = timm.create_model('efficientvit_b0', pretrained=False)
+        model = timm.create_model('efficientvit_b0', pretrained=is_pretrained)
         num_ftrs = model.head.classifier[-1].in_features
         model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'fastvit':
-        model = timm.create_model('fastvit_mci0', pretrained=False)
+        model = timm.create_model('fastvit_sa12', pretrained=is_pretrained)
         num_ftrs = model.head.fc.in_features
         model.head.fc = nn.Linear(num_ftrs, 2)
     model.to(device)

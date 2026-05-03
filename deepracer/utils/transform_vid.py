@@ -21,12 +21,10 @@ dst_pts = np.float32([
 # Get the Transformation Matrix
 M = cv2.getPerspectiveTransform(src_pts, dst_pts)
 print("Perspective Transformation Matrix:\n", M.shape)
-# 4. Apply the perspective warp
-# Assume 'frame' is available from the previous step
 try:
     # Define output image size (width, height)
     width, height = 650, 500
-    # Replace with your video file path
+
     video_path = 'output.avi'
 
     # Open the video file
@@ -42,4 +40,4 @@ try:
     plt.subplot(122), plt.imshow(warped_rgb), plt.title('Transformed View')
     plt.show()
 except NameError:
-    print('Error: "frame" not found. Please run the video capture cell first.')
+    print('Error: "frame" not found.')

@@ -62,7 +62,7 @@ def get_transform(vehicle_location, angle, d=6.4):
 def camera_callback(image, return_image):
     return_image[0] = image
 
-def carla_to_rgb(image):
+def carla_cam_to_image(image):
     array = np.frombuffer(image.raw_data, dtype=np.uint8)
     array = np.reshape(array, (image.height, image.width, 4))
     return array[:, :, :3]  
@@ -165,7 +165,7 @@ def main():
         num_ftrs = model.head.classifier[-1].in_features
         model.head.classifier[-1] = nn.Linear(num_ftrs, 2)
     elif model_name == 'fastvit':
-        model = timm.create_model('fastvit_mci0', pretrained=False)
+        model = timm.create_model('fastvit_sa12', pretrained=False)
         num_ftrs = model.head.fc.in_features
         model.head.fc = nn.Linear(num_ftrs, 2)
     else:
@@ -267,7 +267,7 @@ def main():
             spectator_function(spectator, vehicle)
             image = camera_img[0]
             if image is not None:
-                image = carla_to_rgb(image)
+                image = carla_cam_to_image(image)
                 image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
                 cropped_image = image[240:480, 0:640]
                 resized_image = cv.resize(cropped_image, (int(input_size[1]), int(input_size[0])))

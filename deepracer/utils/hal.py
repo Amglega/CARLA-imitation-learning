@@ -3,12 +3,8 @@ import rclpy # Python library for ROS 2
 from rclpy.node import Node # Handles the creation of nodes
 from deepracer_interfaces_pkg.msg import ServoCtrlMsg
 from sensor_msgs.msg import Image
+from std_msgs.msg import String, Bool
 from rclpy.executors import MultiThreadedExecutor
-import numpy as np
-import cv2
-from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Images
-import math
-from std_msgs.msg import String
 import time
 from datetime import datetime
 from utils.constants import *
@@ -87,7 +83,7 @@ class DeepRacerNode(Node):
             num: angular speed
         """
         self.target_rot = num
-    
+        
     def action_publish(self, target_steer, target_speed):
         """Function publishes the action and sends it to servo.
 
@@ -138,6 +134,7 @@ def setV(num):
     
 def setW(num):
     deepracer_node.set_W(num)
+
 
 def getImage():
     return deepracer_node.getImage()
