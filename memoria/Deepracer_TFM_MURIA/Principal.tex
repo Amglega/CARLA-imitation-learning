@@ -1,0 +1,593 @@
+%%% Documento tipo para trabajos en LaTeX.
+%%% Copyleft: Jesús Balsa, Juan F. García.
+
+
+% Tipo de documento:
+\documentclass[12pt,a4paper,onecolumn,oneside]{report}
+\newcommand{\mychapter}[2]{
+	\setcounter{chapter}{#1}
+	\setcounter{section}{0}
+	\chapter*{#2}
+	\addcontentsline{toc}{chapter}{#2}
+}
+
+
+
+% Opcional: Tamaño personalizado para los márgenes:
+\usepackage[a4paper, top=3cm, bottom=3cm, left=3cm, right=3cm]{geometry}
+\usepackage{float}
+\usepackage{array}
+\usepackage{amsmath}
+\usepackage{lscape}
+
+
+\usepackage{longtable}
+
+\newcommand{\tabtitle}[1]{\cellcolor{CSGreen}\color{white}\textbf{#1}\rule{0pt}{20pt}}
+\newcommand{\ltt}[1]{\cellcolor{CSGreen}\color{white}\textbf{#1}\rule{0pt}{8pt}}
+\newcommand{\rtabtitle}[1]{\cellcolor{CSRed}\color{white}\textbf{#1}\rule{0pt}{20pt}}
+\usepackage{multirow}
+\usepackage[utf8]{inputenc} % Codificación UTF-8.
+\usepackage[T1]{fontenc}    % Para usar caracteres con tilde.
+\usepackage[spanish,es-tabla]{babel} % Escritura en castellano.
+\usepackage{eurosym}  % Para el símbolo del EURO (€).
+\usepackage{graphicx} % Paquete de imágenes, para introducir figuras.
+\DeclareGraphicsExtensions{.pdf,.png,.jpg}
+\usepackage[usenames,dvipsnames]{color} % Texto en colores.
+\usepackage[table, RGB, usenames,dvipsnames]{xcolor}   % Extra colors.
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{lesslightblue}{rgb}{0.7,0.7,1.0}
+\usepackage{listings}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\lstdefinelanguage{shell}
+{
+  backgroundcolor=\color{black},
+  rulecolor=\color{codegray},
+  basicstyle=\footnotesize\ttfamily\color{white},
+  morecomment=[l]{\#},
+  commentstyle=\footnotesize\ttfamily\color{lesslightblue}
+}
+
+\lstset{style=mystyle}
+
+\renewcommand{\lstlistingname}{Script}
+\usepackage{url}      % Para escritura de URLs.
+\usepackage[breaklinks]{hyperref} % Hiperreferencias.
+\usepackage{amsmath,amssymb} % Para los símbolos matemáticos.
+\usepackage{cite}     % Para las citas de referencias (crea el superíndice).
+\usepackage{listings} % Para coloreado de código fuente.
+\usepackage{verbatim} % Para textos tipo consola y otros formatos.
+\usepackage{fancyvrb} % Más opciones de verbatim.
+\usepackage{parskip}  % OPCIONAL: Separa los párrafos con una línea en blanco.
+\setlength{\parindent}{15pt} % Sangría de párrafos estándar (15 puntos). Necesario incluirla si se usa el paquete 'parskip'.
+\usepackage[export]{adjustbox}
+\usepackage{caption}  % Para personalizar los pies de foto.
+
+% Opciones del paquete caption para los pies de imágenes y tablas:
+\captionsetup{figurename=Figura, tablename=Tabla, labelsep=colon, labelfont=bf, font=small, justification=centering}
+
+% Para el control de líneas viudas y huérfanas (líneas sueltas en páginas nuevas):
+\usepackage[all]{nowidow}
+
+\usepackage[nottoc]{tocbibind}    % Incluye el apartado "Referencias" en el índice.
+%\def\spanishrefname{Bibliografía} % Para que ponga "Bibliografía" en lugar de "Referencias". SÓLO se aplica a formato "article". En "report" ya pone "Bibliografía".
+
+\usepackage{fancyhdr}
+
+
+\setlength{\unitlength}{1 cm} % Unidad de trabajo de medidas.
+
+\renewcommand*{\baselinestretch}{1.25} % Altura del INTERLINEADO.
+\renewcommand{\shorthandsspanish}{}    % Para que corte las palabras según el castellano.
+\usepackage{longtable}
+\usepackage{dirtree}
+\usepackage{multirow }
+
+% Propiedades para el PDF generado (METADATOS):
+\newcommand{\authorNames}{Nombre y apellidos del autor}
+\newcommand{\pdftitle}{Título del trabajo}
+\hypersetup{
+  pdftitle={\pdftitle},% Título
+  pdfauthor={\authorNames},% Autor
+  pdfsubject={\pdftitle \ - \authorNames},% Asunto
+% pdfkeywords={Opcional: algunas palabras clave}%
+}
+
+% Para la representación de código fuente:
+% Para BASH:
+\lstset{
+	language=bash,
+	basicstyle=\scriptsize,
+	frame=single,
+	numbers=left,
+	numberstyle=\scriptsize,
+	stepnumber=1,
+	numbersep=9pt,
+	backgroundcolor=\color{White},
+	showspaces=false,
+	showstringspaces=false,
+	showtabs=false,
+	tabsize=4,
+	captionpos=b,
+	breaklines=true,
+	keywordstyle=\color{blue}\bfseries,
+	%identifierstyle=\color{green}\bfseries,
+	stringstyle=\color{orange}\bfseries,
+	commentstyle=\color{gray}\bfseries
+}
+% Para C++:
+%\lstset{
+%	language=C++,
+%	frame=single,
+%	keywordstyle=\color{Green}\bfseries,
+%	identifierstyle=\color{BlueViolet},
+%	stringstyle=\color{Red},
+%	commentstyle=\color{MidnightBlue}
+%}
+
+\usepackage{fancyhdr} % Para el tamaño y estilo de los encabezados.
+
+\fancypagestyle{headings}{% Redefine el estilo "headings".
+	\fancyhf{} % Clear all header and footer fields.
+	\lhead{\small \it Máster Universitario en Robótica e Inteligencia Artificial} 
+	\rhead{\small \it Página \thepage}      % Nº de página a la derecha. Tamaño "small".
+	\renewcommand{\headrulewidth}{1pt}
+}
+
+% Ajustes para división manual de palabras:
+\hyphenation{Python} % Impide que la palabra Python sea dividida al acabar una línea.
+
+
+
+%%%%%% INICIO DEL DOCUMENTO: %%%%%%
+
+\begin{document}
+
+\input{Plantillas/Plantilla_Portada}
+
+
+% Página de FIRMAS:
+\newpage
+
+\thispagestyle{empty} % para que no se numere esta página.
+
+\input{Plantillas/Plantilla_Firmas}
+
+\newpage
+\pagestyle{plain}
+
+\renewcommand{\thepage}{\roman{page}}
+\setcounter{page}{1} % Esta página es la 1.
+
+
+% Página con el ÍNDICE GENERAL
+\tableofcontents
+
+% Página con el ÍNDICE DE FIGURAS
+\listoffigures
+
+% Página con el ÍNDICE DE TABLAS
+\listoftables
+
+% Página con el GLOSARIO:
+\mychapter{0}{Glosario de términos}
+\label{chap:glosario}
+% A partir de aquí ya se incluye el encabezado en las páginas:
+\pagestyle{headings}
+
+% Al ser un capítulo sin número, hay que indicarle qué título añadir al encabezado de la página:
+\markboth{GLOSARIO}{} 
+
+
+
+\begin{description}
+	
+	\item[red neuronal]: modelo computacional inspirado en el cerebro humano que aprende a reconocer patrones y resolver problemas complejos mediante capas de "neuronas" interconectadas.
+
+
+
+
+
+	
+\end{description} 
+
+%%%% Inicio de los CAPÍTULOS %%%%
+\newpage
+\renewcommand{\thepage}{\arabic{page}}
+\setcounter{page}{1} % Esta página es la 1.
+
+\mychapter{0}{Introducción}
+\label{Introducción}
+
+Históricamente, la navegación autónoma se ha abordado mediante arquitecturas modulares, dividiendo el probema en pequeñas tareas tales como percepción, localización, planificación de trayectorias y control. En contraparte, en este proyecto se adopta el enfoque de control de extremo a extremo (End-to-End Control). Este tipo de soluciones suele utilizar modelos de aprendizaje profundo (Deep Learning) para mapear directamente las entradas de los sensores en bruto (por ejemplo, imágenes de una cámara frontal) a comandos de control de bajo nivel (como el ángulo de dirección y la aceleración). Este enfoque elimina la necesidad de diseñar características manualmente, permitiendo que la red neuronal descubra por sí misma las representaciones más útiles para la tarea de conducción. 
+
+El componente principal del sistema de control propuesto recae en las Redes Neuronales Artificiales, específicamente aquellas arquitecturas diseñadas para procesar imágenes. En este trabajo se analizarán distintas arquitecturas de redes para evaluar su rendimiento para procesar el flujo de información visual y traducirlo en acciones mecánicas.
+
+El rendimiento de una red end-to-end depende críticamente de los datos con los que se entrena. En este contexto, los conjuntos de datos están compuestos por pares sincronizados de observaciones (imágenes capturadas por el vehículo) y acciones (comandos de conducción aplicados por un piloto humano). El proceso de entrenar a la red para imitar estas acciones se conoce como Imitation Learning. En el proyecto se evaluará cómo diferentes tipos de datos impactan en la robustez del modelo.
+
+El desarrollo robótico moderno requiere comportamientos rápidos y robustos. para logar estos objetivos se emplean simuladores, que proporcionan un entorno virtual donde el vehículo puede chocar y fallar sin coste físico. Además, nos permitien generar grandes cantidades de datos sintéticos en poco tiempo. Sin embargo, el objetivo final es el despliegue en un vehículo físico a escala (AWS DeepRacer). Esto introduce el paradigma de Sim2Real, que se basa en entrenar redes en entornos virtuales y transferir ese conocimiento a agentes del mundo físico.
+
+\section*{Planteamiento del problema}
+
+El problema que se quiere resolver es qué tipo de arquitectura y qué tipo de datos son los aptos para el control de extremo a extremo en conducción autónoma. 
+
+Para ello se propone realizar recopilación de datos tanto en simulación como en un entorno real con distintas metodologías. 
+El entrenamiento de  distintas arquitecturas de redes, tanto aquellas diseñadas específicamente para este tipo de escenario como otras más generales. 
+Y finalmente un análisis del comportamiento de las mismas valorando las características cuantitativas que presentan y la robustez de las mismas ante escenarios complejos.
+
+\section*{Objetivos}
+
+En este Trabajo de Fin de Máster, se plantean una serie de objetivos interconectados que tienen como finalidad principal:
+
+\fbox{\begin{minipage}{14cm}
+Evaluar distintas arquitecturas de  redes neuronales y el impacto de los datos de entrenamiento en el contexto del control extremo a extremo, y más concretamente, en el ámbito de la conducción autónoma.
+\end{minipage}}
+
+Para lograrlo, se pretenden abordar los siguientes objetivos: 
+
+\begin{itemize}
+    \item[$O_1$]
+    Obtener conjuntos de datos  que ayuden a controlar un vehículo en una simulación. Para ello se creará un programa que recoja las imágenes de la simulación y las use como entrada para la red neuronal, despúés, usando los datos de salida, se mandará una señal de control para manejar el vehículo. 
+    \item[$O_2$]
+    Desarrollar un programa que nos permita entrenar un modelo neuronal para controlar el vehículo simulado. 
+    \item[$O_3$] 
+    Entrenar varios modelos con configuraciones variables de los datos de entrenamiento. Una vez entrenado un modelo, se pocederá a entrenar otras redes con distintas arquitecturas y con datos más o menos complejos obtenidos de la simulación.
+    \item[$O_4$] 
+    Utilizar un programa que nos permita analizar y comparar los distintos modelos para determinar cuál es el mejor mediante métricas del rendimiento de cada uno.
+    \item[$O_5$] 
+    Crear un programa que nos permita evaluar la robustez de las distintas configuraciones.
+    \item[$O_6$] 
+    Abordar los anteriores objetivos en un vehículo real. Se intentarán replicar las anteriores metas usando como plataforma un vehículo real (a escala), en vez de uno simulado.
+\end{itemize}
+
+
+\section*{Metodología}
+
+Para el desarrollo de este Trabajo de Fin de Máster, caracterizado por un alto grado de experimentación, se ha adoptado la metodología Scrum. Esta metodología nos permite una adaptación rápida y estructurada ante resultados imprevistos.
+
+Scrum es un marco de trabajo iterativo e incremental diseñado para abordar proyectos complejos. Su pilar fundamental es la división del tiempo de desarrollo en ciclos de trabajo cortos y de duración fija denominados Sprints. El objetivo de cada Sprint es producir un incremento de valor o un resultado funcional; para este proyecto se han popuesto Sprints semanales con objetivos adaptados al desarrollo del mismo, como la obtención de modelos evaluables, métricas de rendimiento o avances demostrables en el control del vehículo real.
+
+Para adaptar esta metodología profesional al entorno de la investigación académica, se han empleado los siguientes elementos clave:
+
+\begin{itemize}
+
+\item Adaptación de roles: El alumno investigador asume la responsabilidad de la ejecución técnica (desarrollo, entrenamiento y validación), mientras que el equipo de tutorización académica asume el rol de Scrum Master, guiando la trayectoria del proyecto y validando los avances.
+
+\item Programación: La planificación general se ha gestionado mediante un Project Backlog, un documento vivo, en forma de tabla de tareas, que contiene la lista priorizada de todos los requisitos técnicos del proyeco. Al inicio de cada iteración, se extraen las tareas inmediatas conformando un Sprint Backlog.
+
+\item Iteraciones semanales: El progreso se ha monitorizado mediante reuniones periódicas cada una o dos semanas. Las sesiones de planificación con los tutores han sido fundamentales para analizar los fallos de control de las redes, reajustar los datasets o rediseñar las estrategias para abordar la tarea Sim2Real.
+\end{itemize}
+
+El uso de Scrum ha garantizado que el proyecto mantenga un enfoque práctico y orientado a resultados continuos, minimizando el riesgo de estancamiento en fases puramente teóricas y optimizando el tiempo disponible.
+
+\section*{Tecnologías utilizadas}
+\begin{itemize}
+\item Python: es un lenguaje de programación de alto nivel, interpretado y de propósito general, conocido por su sintaxis limpia y altamente legible. Se ha elegido este lenguaje de programación debido a su uso extendido y gran comunidad que proporciona una gran variedad de bibliotecas de terceros que nos facilitan resolver tareas de una mayor complejidad de manera más rápida y eficiente gracias a la reutilización de métodos, estructuras y algoritmos ya implementados. Algunas de las librerías utilizadas han sido: NumPy, OpenCV, Pygame, y Pandas.
+
+\item PyTorch: es una librería de aprendizaje profundo de código abierto basado en Python, diseñado para la creación y el entrenamiento de redes neuronales. Se trata de una herramienta PyTorch es una herramienta ampliamente usada en la investigación de IA y el desarrollo de aplicaciones para diversas tareas como visión por computador (clasificación, segmentación y detección), procesamiento del lenguaje natural, o aproximación de series temporales. Además, admite el uso de GPUs para mejorar el rendimiento de redes neuronales.
+
+\item CUDA(Compute Unified Device Architecture): se trata de una plataforma de computación paralela y un modelo de programación desarrollado por NVIDIA que permite utilizar la potencia de procesamiento de las GPUs de NVIDIA para tareas de propósito general. Es una herramienta fundamental para acelerar taréas que requieren una gran cantidad de cálculos simultáneos, como el entrenamiento e inferencia en aprendizaje profundo, al utilizar los miles de núcleos de procesamiento de una GPU para ejecutar simultáneamente las líneas de código que requieren un mayor cómputo. De este modo CUDA actúa como el puente de software que permite que las biblioteca de deep learning de Python utilizada, PyTorch, aproveche la potencia de cálculo paralelo de las tarjetas gráficas.
+
+\item OpenVINO: es un conjunto de herramientas de IA de código abierto desarrolladas por Intel. Está diseñado específicamente para optimizar y acelerar la inferencia de modelos de deep learning en una amplia gama de hardware de Intel (CPU, GPU, NPU, y FPGA). Ya que el vehículo robótico utilizado no posee una GPU, pero sí un procesador de Intel, se ha optado por esta herramienta para optimizar los modelos mediante la fusión de capas, pruning, y cuantización, para minimizar el tamaño y maximizar el rendimiento con una mínima pérdida de precisión.
+
+\item ROS2(Robot Operating System 2): es un middleware de código abierto diseñado para ayudar a construir aplicaciones robóticas distribuidas, modulares y robustas. No es un sistema operativo en sí mismo, sino que proporciona una capa de abstracción entre sensores, actuadores y la unidad de procesamiento que facilita la comunicación y reutilización de código en sistemas robóticos complejos. Inicialmente en este trabajo iba a ser el middleware utilizado para comunicarse tanto con el simulador como con los sitemas del robot, aunque finalmente solo se utilizó para este último.
+
+\item CARLA(Car Learning to Act): es un simulador de conducción autónoma de código abierto diseñado para la investigación, el desarrollo y la evaluación de algoritmos de percepción, planificación y control de vehículos autónomos. El simulador está construido sobre el motor gráfico de Unreal Engine, lo que permite renderizar entornos virtuales muy realistas con físicas y gráficos de alta fidelidad. Asimismo, tiene una potente API para Python que permite interactuar con el simulador y controlar vehículos, peatones e incluso el entorno (clima, semáforos, señales...), y recopilar datos de manera sencilla. Esto nos ha facilitado la integración con la biblioteca de aprendizaje profundo PyTorch y el middleware de ROS 2.
+
+\item AWS DeepRacer: es un coche de carreras totalmente autónomo a escala 1/18 que se basa en el aprendizaje por refuerzo desarrollado por Amazon. Sin embargo, al tratarse de una plataforma de código abierto, para este trabajo hemos empleado modelos entrenados mediante aprendizaje por imitación para controlar el mismo. Posee un motor de escobillas para lograr la velocidad de desplazamiento, se controla mediante la modulación por ancho de pulso(PWM) que le indica la velocidad de giro. También tiene un servomecanismo que acciona el sistema de direccionamiento, confiriendole una dinámica Ackermann. Posee un procesador Intel XXXXX de 4GBs de memoria. En cuanto al software, su sistema operativo es Ubuntu 20.04 Focal Fossa, y cuenta con el toolkit de Intel OpenVINO v2021.1.110, ROS2 Foxy Fitzroy, y Python v3.8 que usa la librería Pytorch vXXXXX. 
+
+\end{itemize}
+
+\chapter{Estudio del problema}
+\label{Estudio del problema}
+
+En este capítulo, se establece el contexto del estudio explorando las tecnologías, plataformas, herramientas y trabajos previos relacionados que sirven como base para la investigación.
+
+\section{El contexto del problema}
+
+Este problema se enmarca en el campo de la conducción autónoma. Este, a su vez, se encuentra en una interseción de la robtótica y la automoción. A dia de hoy la mayoría de los coches de nueva fabricación cuentan con ADAS (Advanced driver-assistance systems), situado en el nivel 2 de la escala propuesta por SAE International en Taxonomy and Definitions for Terms Related to On-Road Motor Vehicle Automated Driving Systems; the details are revised occasionally, actualmente se encargan de. En un futuro, no sería de extrañar que estos sistemas se hiciesen más complejos e incorporasen más capacidades un su ya amplio repertorio y que, como si de una escalera se tratase, subiesen poco a poco en la clasificación previamente mencionada y se alcanzase la conducción autónoma total. 
+
+\section{El estado de la cuestión}
+
+Actualmente,
+
+
+\section{La definición del problema}
+
+Teniendo en cuenta el estado del arte actual y los desafíos que hay presentes en este ámbito, nos proponemos a valorar cómo de eficaz es un sistema totalmente autónomo de control extremo a extremo cuya parte de toma de decisiones se compone principalmente de una única red neuronal a la que se le suministra sólamente la imágen frontal del vehículo. A su vez, también evaluaremos distintas configuraciones de redes neuronales y el impacto que tienen la clase de imágenes de entrenamiento provistas en el rendimiento y robustez de la misma.
+
+\chapter{Gestión del proyecto}
+\label{Gestión del proyecto}
+
+El proyecto 
+
+
+\section{Alcance del proyecto}
+\label{Alcance del proyecto}
+
+El objetivo de este proyecto es conseguir una red neuronal con un buen rendimiento y robusta que sea capaz de tomar decisiones de control tanto en simulación como en un entorno real. Para ello se entrenaran varias arquitecturas con distintos conjuntos de datos y se realizará un análisis de los resultados obtenidos.
+
+Asimismo, para conseguir esto desarrollaremos diversas herramientas de software. En primer lugar  necesitamos una que nos permitan recopilar los datos de un conductor experto. Después un programa para entrenar las distintas arquitecturas. Y finalmente una herramienta de análisis del desempeño de las reded para evalual cuál es la mejor. En esta primera parte se utilizará el simulador realista CARLA.
+
+Del mismo modo, se intentará replicar el comportamiento obtenido en un entorno real para demostrar la utilidad de las arquitecturas de control extremo a extremo en soluciones reales. Para ello se utilizará la base robótica DeepRacer de AWS en un circuito construido a escala.
+
+\subsection{Definición del proyecto}
+
+
+
+\subsection{Estimación de tareas y recursos}
+
+
+
+\subsection{Presupuesto}
+
+
+\subsubsection{Coste de personal}
+
+
+\subsubsection{Coste del hardware}
+
+
+
+\subsubsection{Coste total}
+
+\section{Plan de trabajo}
+\label{Plan de trabajo}
+
+
+\subsection{Identificación de tareas}
+\label{Identificación de tareas}
+
+
+
+\subsection{Estimación de tareas}
+\label{Estimación de tareas}
+
+
+
+\section{Gestión de recursos}
+\label{Gestión de recursos}
+
+\subsection{Asignación de recursos}
+\label{asignacion de recursos}
+
+
+
+
+\section{Gestión de riesgos}
+
+\subsection{Identificación de riesgos}
+
+\clearpage
+\section{Legislación y normativa}
+
+En el marco de ejecución de este proyecto, se ha llevado a cabo un riguroso cumplimiento de la legislación y normativa vigente. A continuación, se detalla cómo el proyecto se ajusta y adhiere a las leyes pertinentes:
+
+\begin{itemize}
+    \item \textbf{Ley Orgánica 3/2018, de 5 de diciembre, de Protección de Datos Personales y garantía de los derechos digitales}\cite{LOPD2018}
+    
+    Este proyecto respeta plenamente la Ley Orgánica 3/2018, la cual reconoce el derecho fundamental a la protección de datos personales. La creación del dataset se ha desarrollado de acuerdo con las disposiciones de la ley, asegurando la legalidad en el tratamiento de datos. Los permisos explícitos obtenidos para el uso de imágenes garantizan la privacidad de los individuos. Además, las pruebas y el desarrollo se realizaron en un entorno controlado para evitar perjuicios en materia de datos a terceros. Aunque las imágenes capturadas por la cámara del robot no se almacenan, se garantiza que el procesamiento cumple con los principios de protección de datos establecidos en la ley.
+    \item \textbf{Reglamento (UE) 2016/679 del Parlamento Europeo y del Consejo relativo a la protección de las personas físicas en lo que respecta al tratamiento de datos personales y a la libre circulación de estos datos (RGPD)}\cite{RGPD2016}
+
+    La creación del dataset en este proyecto se ajusta a los principios del RGPD, asegurando la legalidad y transparencia en el tratamiento de datos personales. Se han implementado medidas técnicas y organizativas para garantizar la seguridad y privacidad de los datos presentes en el dataset, cumpliendo así con las normativas del RGPD.
+    \item \textbf{Propuesta de Reglamento del Parlamento Europeo y del Consejo sobre Inteligencia Artificial (PRLIA)}\cite{PRIA2021}
+
+    El proyecto ha sido diseñado y ejecutado considerando de manera integral las disposiciones y requisitos establecidos por la PRLIA. Un documento legislativo propuesto por la Unión Europea para regular el uso de la inteligencia artificial en diversos ámbitos. Esta propuesta tiene como objetivo establecer normas armonizadas en materia de inteligencia artificial para garantizar la seguridad, ética y transparencia en su desarrollo y aplicación. Aunque el proyecto no involucra una IA de alto riesgo, se han tenido en cuenta las recomendaciones éticas reflejadas en el marco ético del proyecto. No se ha incumplido ninguna disposición de la PRLIA, ya que no se han violado derechos fundamentales ni se han utilizado técnicas subliminales o vulnerabilidades de grupos específicos.
+    \item \textbf{Real Decreto Legislativo 1/1996 sobre Propiedad Intelectual}\cite{RDL1996}
+    
+    En conformidad con el Real Decreto Legislativo 1/1996, el proyecto respeta la normativa sobre propiedad intelectual. Se ha optado por utilizar únicamente código y herramientas de software libre y de código abierto para garantizar el cumplimiento de la normativa en materia de propiedad intelectual.
+\end{itemize}
+
+\chapter{Solución}
+\label{Solución}
+
+\section{Descripción de la solución}
+
+
+\section{El proceso de desarrollo}
+
+\subsection{Análisis}
+\label{analisis}
+
+
+\subsubsection{Definición de requisitos}
+
+\begin{itemize}
+    \item Requisitos funcionales (RF)
+
+           \textbf{RF1: }
+           
+           
+    \item Requisitos no funcionales
+
+    \textbf{RNF1}: 
+\end{itemize}
+
+\subsubsection{Especificación de requisitos}
+
+\arrayrulecolor[HTML]{B9DAE1}
+\begin{longtable} {|p{3cm}|p{11cm}|} \hline
+\rowcolor[HTML]{67D1E6} CU-01 & Capturar imágenes de la cámara  \\ \hline
+Versión & 1.0 \\ \hline
+Descripción & El sistema se subscribe al topic de ROS 2 encargado de publicar
+las imágenes en tiempo real de la cámara del robot o cualquier
+cámara externa conectada al ordenador.\\ \hline
+Actores &  Nodo Detector\\ \hline
+Precondición &  La cámara debe estar publicando en el topic de ROS 2.\\ \hline
+Flujo básico & 
+\begin{tabular}{p{2cm}|p{8cm}}
+ Paso & Acción \\ \hline
+ 1 & Se inicializa el nodo Detector.\\ \hline
+ 2 &  Se cargan los parámetros indicados por el usuario.\\ \hline
+ 3 &  El nodo se subscribe al topic de ROS en el que está publicando la cámara.\\ \hline
+\end{tabular}\\ \hline
+Flujo alternativo &  \\ \hline
+Postcondición &  El nodo Detector recibe las imágenes de la cámara en tiempo real.\\ \hline
+\caption{Caso de uso 1}
+\end{longtable} \vspace{0.5cm}
+
+
+
+\subsection{Diseño}
+\label{Diseño}
+
+\subsubsection{Simulación}
+
+
+\subsubsection{Real}
+
+Para las pruebas con el vehículo robotizado real se ha utilizado el siguiente circuito construido en el laboratorio de robótica móvil de la URJC:
+
+%\figure{imagen_circuito_real.png}
+
+El recorrido tiene unos 15.2 metros de longitud y unos 60 cm de anchura divididos en dos carriles. De este modo, ya que el DeepRacer posee 20 cm de ancho se puede colocar centrado en cualquiera de los dos carriles con un márgen de 5 cm hasta el borde del circuito o hasta el otro carril.
+
+Para recoger los datos, al igual que en el mundo simulado, se ha decidido obtenerlos mediante la grabación de las acciones de control de un teleoperador. Una vez recogidos los datos, se ha utilizado la máquina principal que dispone de GPU para entrenar los modelos y acelerar el proceso. 
+
+En cuanto al programa, al igual que en el anterior apartado, podemos dividirlo en percepción, inferencia y actuación, con la diferencia de que en este caso para obtener información y llevar a cabo las acciones utilizaremos ROS2.
+
+\subsection{Implementación}
+
+
+\subsection{Pruebas}
+
+
+\section{El producto del desarrollo}
+
+
+\section{Proceso de evaluación}
+
+
+\subsection{Métricas de Comportamiento}
+
+\begin{table}[]
+\begin{tabular}{l|l|l|l|}
+\cline{2-4}
+                        & Descviación Media & Colisiones & Desviación Total  \\ \hline
+\multicolumn{1}{|l|}{Burbuja} & X & \checkmark  & X  \\ \hline
+\multicolumn{1}{|l|}{Burbuja + Dagger} & \checkmark   & \checkmark   &  \checkmark \\ \hline
+\multicolumn{1}{|l|}{Burbuja + Ruido} &  X & \checkmark  & X   \\ \hline
+\multicolumn{1}{|l|}{Burbuja + Ruido + Dagger} &  \checkmark   & \checkmark   &  \checkmark   \\ \hline
+\end{tabular}
+\end{table}
+
+\subsection{Evaluación de Robustez}
+
+\begin{table}[]
+\begin{tabular}{l|l|l|l|}
+\cline{2-4}
+                        & Test de posición & Test de velocidad & Test Dagger  \\ \hline
+\multicolumn{1}{|l|}{Burbuja} & X & \checkmark  & X  \\ \hline
+\multicolumn{1}{|l|}{Burbuja + Dagger} & \checkmark   & \checkmark   &  \checkmark \\ \hline
+\multicolumn{1}{|l|}{Burbuja + Ruido} &  X & \checkmark  & X   \\ \hline
+\multicolumn{1}{|l|}{Burbuja + Ruido + Dagger} &  \checkmark   & \checkmark   &  \checkmark   \\ \hline
+\end{tabular}
+\end{table}
+
+
+
+\chapter{Evaluación de los resultados}
+\label{Evaluación de los resultados}
+
+
+
+\subsection{Real}
+
+
+\section{Análisis de resultados}
+
+
+
+\mychapter{1}{Conclusión}
+
+
+
+\subsection*{Aportaciones realizadas}
+
+
+
+\subsection*{Problemas encontrados}
+
+
+
+\section*{Opiniones personales}
+
+
+
+\subsection*{Trabajos futuros}
+
+
+\subsection*{Agradecimientos}
+
+
+
+%%%% BIBLIOGRAFÍA %%%%
+\renewcommand\bibname{Lista de referencias}
+
+%\bibliography{Refs-proyecto}    % Fichero con las referencias.
+%Información bibliográfica citada en el texto del trabajo. Otras lecturas recomendadas o consultadas, de figurar, aparecerán en anexos.
+%Se debe seguir la norma ISO 690 (buscar en google ISO 690 ugr)
+
+% % También se puede optar por incluir las referencias desde aquí mismo:
+% \begin{thebibliography}{1}
+	
+
+	
+
+% \bibitem{CSSP}
+% {CSSP, D.}:
+% \newblock \textit{Recommended Practice: Improving Industrial Control Systems
+%   Cybersecurity with Defense-In-Depth Strategies}.
+% \newblock US-CERT Defense In Depth. (Octubre 2009)
+
+% \end{thebibliography}
+
+\bibliographystyle{plain} % Fichero con el formato de la bibliografía.
+\nocite{*}
+\bibliography{referencias}
+%\bibliographystyle{unsrt} %plain %apalike
+
+
+%%%% ANEXOS %%%%
+\renewcommand{\appendixname}{Anexo}
+\appendix
+
+\chapter{Control de versiones}
+\label{Control de versiones}
+
+En el marco del desarrollo de este Trabajo de Fin de Máster (TFM), se ha empleado GitHub como servicio de control de versiones para gestionar eficientemente el código generado. GitHub ha proporcionado una plataforma robusta que facilita la colaboración, el seguimiento de cambios y la gestión de versiones de manera integral.
+
+
+\chapter{Seguimiento de proyecto fin de máster}
+\label{Seguimiento de proyecto fin de máster}
+
+%Obligatorio. Seguimiento del trabajo real.
+
+\section{Forma de seguimiento}
+
+\section{Planificación inicial}
+
+\section{Planificación final}
+%Si el trabajo ha consistido en la elaboración de una aplicación se incluirá el manual de usuario de la misma.
+
+
+
+\end{document}
