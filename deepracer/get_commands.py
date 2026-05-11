@@ -1,5 +1,10 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -
+
 import socket
 import struct
+
+# Test script to receive two 64-bit floats (throttle and angle) sent to the DeepRacer car over a TCP socket.
 
 # Using HOST and PORT from the kernel state
 MASTER_IP = 'localhost'

@@ -1,9 +1,14 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 import requests
 from pathlib import Path
 from PIL import Image
 import torch
 import torchvision
 import numpy as np
+
+# Test script to convert a PyTorch model to OpenVINO format and perform inference using OpenVINO runtime.
 
 MODEL_DIR = Path("openvino_models")
 DATA_DIR = Path("data")

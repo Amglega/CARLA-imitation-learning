@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# This module provides a Hardware Abstraction Layer (HAL) for the DeepRacer, 
+# allowing users to interact with the robot's actuators and sensors without needing to manage the underlying ROS 2 communication. 
+# It includes functions for setting and getting linear and angular velocities, as well as retrieving camera images.
 
 import rclpy # Python library for ROS 2
 from rclpy.node import Node # Handles the creation of nodes

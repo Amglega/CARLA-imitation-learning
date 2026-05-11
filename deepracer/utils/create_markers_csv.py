@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Script that allows users to click on 4 markers in a camera feed, 
+# input their corresponding real-world coordinates, and save this data to a CSV file for use in perspective transformation.
+
 import cv2 as cv
 import pygame
 import numpy as np

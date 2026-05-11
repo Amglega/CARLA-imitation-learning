@@ -1,24 +1,23 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import os
+# Script to remotely teleoperate the car using a steering wheel and save the data in a CSV file.
+# The script uses two threads, one to read the steering wheel input and another to display the camera input 
+# and send control signals to the car.
+
 import sys
 import signal
-import select
 import termios
-import tty
 import numpy as np
 import time
 import cv2
 import utils.master_hal as HAL
-import csv
 import argparse
 import threading
 import subprocess
 import pygame
 import math
 from configparser import ConfigParser
-from utils.deepracer_metrics import DeepRacerMetrics
 
 settings = termios.tcgetattr(sys.stdin)
 

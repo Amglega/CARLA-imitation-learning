@@ -6,6 +6,9 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
+# Modified to use a basic agent to follow a route defined by a list of spawn points, 
+# and save the data for imitation learning.
+
 import glob
 import os
 import sys

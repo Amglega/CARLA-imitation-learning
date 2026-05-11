@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Modified version of the original hal.py to be used in the remote control of the DeepRacer, 
+# allowing users to set and get linear and angular velocities, 
+# as well as publish start/stop recording messages without needing to manage the underlying ROS 2 communication.
 
 import rclpy # Python library for ROS 2
 from rclpy.node import Node # Handles the creation of nodes

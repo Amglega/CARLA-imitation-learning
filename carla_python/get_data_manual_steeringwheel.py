@@ -8,6 +8,9 @@
 # Allows controlling a vehicle with a keyboard. For a simpler and more
 # documented example, please take a look at tutorial.py.
 
+# Modified for Logitech G29 steering wheel control, based on the original example in the CARLA repository. 
+# It allows to control a vehicle with a steering wheel and save the data for imitation learning.
+
 """
 Welcome to CARLA manual control with steering wheel Logitech G29.
 

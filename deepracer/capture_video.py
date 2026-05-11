@@ -1,18 +1,17 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import os
+
+# Script to capture video from webcam and undistort it
+# using the camera calibration parameters obtained from camera calibration. 
+
+import argparse
 import numpy as np
 import cv2
-import argparse
-import glob
-
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-
     parser.add_argument("--mode", type=str, default="capture", help="To save or not to save the data")
-
 
     args = parser.parse_args()
     return args

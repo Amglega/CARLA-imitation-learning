@@ -1,5 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+# Script to remove duplicate points from centroid CSV file
+# The script reads a CSV file containing (x, y) points, removes duplicates while preserving the order of first occurrence, and writes the unique points back to a CSV file. 
+# It also prints statistics about the number of original points, unique points, and duplicates removed.
+
 import csv
 import argparse
 import os

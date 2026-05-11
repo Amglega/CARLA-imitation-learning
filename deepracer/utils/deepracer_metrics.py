@@ -1,3 +1,11 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Script based on the poyect Behaviour Metrics, it captures video from the camera, 
+# detects the car (using color detection), calculates the centroid, and records both the video and centroid data. 
+# It also provides functionality to compare the recorded trajectory 
+# with reference checkpoints form past iterations and visualize the results in a wrapped perspective view.
+
 import argparse
 import math
 import threading

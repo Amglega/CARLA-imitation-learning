@@ -2,7 +2,9 @@
 */experiments/*
 */*.onnx
 */*.pth
+*/*.csv
 */agents/*
 */__pycache__/*
 */*.avi
 */deepracer_ws
+.*

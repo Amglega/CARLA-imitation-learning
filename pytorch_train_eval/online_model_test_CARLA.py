@@ -6,6 +6,12 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
+# Modified version of the original CARLA manual control script to enable online testing of a trained model in the CARLA simulator.
+# The script connects to the CARLA simulator, spawns a vehicle and a camera, and uses the camera feed to make predictions with a trained model. 
+# The predicted throttle and steer values are then applied to the vehicle in pseudo-real-time. 
+# The script also includes functionality to visualize the spawn points in ordet to see whte route the vehicle should follow.
+
+
 import glob
 import os
 import sys

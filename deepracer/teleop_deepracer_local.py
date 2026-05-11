@@ -1,5 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+# Script to teleoperate the car using the keyboard and save the data in a CSV file.
+# The script uses three threads, one to read the keyboard input 
+# other to process the camera input and a third one to save the data and control the car. 
+# The user can choose to save the data or not using a command line.
+
 import os
 import sys
 import signal

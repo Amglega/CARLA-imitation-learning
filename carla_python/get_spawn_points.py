@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# This script allows to visualize the spawn points in the CARLA simulator. 
+# It connects to the simulator, retrieves the current world, and draws the spawn points as numbers on the map. 
+# The script runs in an infinite loop, allowing you to see the spawn points until you decide to stop it.
+
 import carla
 
 def main():

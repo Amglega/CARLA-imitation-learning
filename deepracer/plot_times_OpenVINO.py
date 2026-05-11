@@ -1,3 +1,8 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# test script to plot the inference times of the different models with and without OpenVINO optimization.
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns

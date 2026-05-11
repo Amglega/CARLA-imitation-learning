@@ -6,6 +6,9 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
+# This script is a modified version of the original CARLA example, 
+# adapted to save data for imitation learning using the ROS2 bridge.
+
 import glob
 import os
 import sys
@@ -108,9 +111,6 @@ class Weather(object):
 
     def __str__(self):
         return '%s %s' % (self._sun, self._storm)
-
-
-
 
 
 class ImageSubscriber(Node):

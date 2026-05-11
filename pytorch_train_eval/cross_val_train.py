@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+
+# This script implements K-Fold Cross-Validation training for a model on a dataset. 
+# It allows to specify the number of folds, the model architecture, and other training parameters. 
+# The script trains the model on the training set of each fold, evaluates it on the validation set, and saves the best model for each fold. 
+# Finally, it selects the best model across all folds based on validation loss and evaluates it on a separate test set.
+
 import os
 import csv
 import torch

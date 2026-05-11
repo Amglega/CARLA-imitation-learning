@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# Script to plot the data collected for imitation learning. 
+# It reads a CSV file containing the data and creates three subplots for throttle, steer and brake.
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import argparse

@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -
+
+# This script tests a trained model on a dataset of images and corresponding throttle and angle values.
+# It loads the model, processes each image in the dataset, and compares the model's predictions with the actual throttle and angle values from the dataset.
+# The script also measures the inference time for each image and calculates the average inference time, as well as the average error for throttle and angle predictions.
+# If the OpenVINO flag is set, it converts the model to OpenVINO format.
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

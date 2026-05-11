@@ -1,9 +1,15 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -
+
 import socket
 import struct
 
 # Using HOST and PORT from the kernel state
 DEEPRACER_IP = '192.168.1.66'
 PORT = 12345
+
+# Test script to send two 64-bit floats (throttle and angle) to the DeepRacer car over a TCP socket. 
+# The values are sent in an infinite loop with a small delay between.
 
 def sender_script(host, port):
     # Create a socket object

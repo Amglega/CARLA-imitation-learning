@@ -6,7 +6,8 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-# Modified to enable to save data for imitation learning following DAgger methodology 2024
+# Modified to use a basic agent to follow a route defined by a list of spawn points, 
+# and save the data for imitation learning following Dagger methodology.
 
 import glob
 import os

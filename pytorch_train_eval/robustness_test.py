@@ -5,11 +5,12 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-# Script that test how resilent and robust is a neural network
-# Three types of tests are performed: 
-# 1. Position and orientation deviation
-# 2. Initial speed test
-# 3. Random control test (Dagger)
+# Modified version of online_model_test_CARLA from that test how resilent and robust is a neural network, 
+# trained to imitate a controller.
+# It implements three kinds of robustness test:
+# 1. Random control test: applies random throttle and steer commands to the vehicle at regular intervals to see how the model recovers from unexpected situations3.
+# 2. Position test: spawns the vehicle at different lateral positions on the road to evaluate how well the model can handle variations in the starting position.
+# 3. Velocity test: spawns the vehicle with different initial velocities on the road to evaluate how well the model can handle variations in the starting velocity.
 
 """
 Welcome to CARLA robustness test.

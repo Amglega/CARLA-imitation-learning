@@ -1,3 +1,9 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Script to convert a PyTorch model to OpenVINO format and save it on disk. 
+# It also compiles the model using OpenVINO runtime to check that the conversion was successful.
+
 import openvino as ov
 import torch
 from utils.pilotnet import PilotNet

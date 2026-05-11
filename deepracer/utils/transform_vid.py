@@ -1,3 +1,8 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+# Test script to apply perspective transformation to a video frame using OpenCV and Matplotlib for visualization.
+
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt

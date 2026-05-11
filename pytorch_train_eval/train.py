@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+
+# This script implements the training loop for a model on a dataset. 
+# It allows to specify the training and validation data directories, the model architecture, and other training parameters. 
+# It trains the model for a specified number of epochs, evaluates it on the validation set after each epoch, and saves the best model based on validation loss. 
+# Finally, it evaluates the best model on a separate test set and plots the training and validation loss curves of each epoch.
+
 import os
 import csv
 import torch

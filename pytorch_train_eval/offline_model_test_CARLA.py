@@ -1,4 +1,11 @@
 #!/usr/bin/env python
+
+# This script evaluates a trained model on a test dataset. 
+# It loads the model from a specified path, processes the test data, 
+# and compares the model's predictions with the actual values. 
+# The script also measures the inference time and calculates the average error for throttle and steer outputs. 
+# Finally, it plots the comparison between the controller's outputs and the model's predictions.
+
 import os
 import numpy as np
 import matplotlib.pyplot as plt

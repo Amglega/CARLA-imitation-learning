@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -
+
+# This script tests a trained model with the data obtainfed from the DeepRacer car.
+# It loads the model, gets the current image from the camera, processes it, and sends the predicted throttle and angle values to the car.
+
 import os
 import numpy as np
 import cv2

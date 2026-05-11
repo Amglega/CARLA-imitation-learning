@@ -1,5 +1,13 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+# This script enables recording of images and acruation data (throttle and angle) from the DeepRacer car.
+# It subscribes to the /ctrl_pkg/servo_msg topic to receive the ServoCtrlMsg messages containing throttle and angle data.
+# When a ServoCtrlMsg is received, it captures an image from the camera, saves it to a dataset directory, and logs the corresponding throttle and angle values in a CSV file.
+# The recording can be started and stopped by publishing a Bool message to the /start_record topic. 
+# When the Bool message is True, recording starts; when it is False, recording stops.
+# The script also displays the camera feed in a separate window, allowing the user to see what is being recorded. 
+
 import os
 import sys
 import signal

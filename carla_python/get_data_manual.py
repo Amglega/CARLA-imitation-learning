@@ -9,7 +9,7 @@
 # Allows controlling a vehicle with a keyboard. For a simpler and more
 # documented example, please take a look at tutorial.py.
 
-# Modified to enable to save data for imitation learning 2024
+# Modified to enable to save data for imitation learning.
 
 """
 Welcome to CARLA manual control.
