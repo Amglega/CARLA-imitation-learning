@@ -29,10 +29,9 @@ class DeepRacerMetrics:
         
         # Thread-safe event for recording toggle from keyboard in standalone display mode
         self._record_toggle_event = threading.Event()
-        
-        # If camera is provided, use it; otherwise open a new one
 
-        self.cap = cv.VideoCapture(2)
+        self.camera_index = 2
+        self.cap = cv.VideoCapture(self.camera_index)
             
             
         self.recording = False
@@ -89,7 +88,7 @@ class DeepRacerMetrics:
             bx, by = cx, cy
             for mx, my in self.waypoints:
                 d = math.hypot(mx - cx, my - cy)
-                print(d)
+                #print(d)
                 if d < best_d:
                     best_d = d
                     bx, by = mx, my
@@ -341,8 +340,8 @@ class DeepRacerMetrics:
             # change array to display correclty in pygame
             if self.display is not None:
                 # change RGB to BGR and display on pygame window
-                cv.circle(red_objects,(cx,cy),20,color=(255,255,255),thickness=3)
                 rgb_frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
+                cv.circle(rgb_frame,(cx,cy),20,color=(255,255,255),thickness=3)
                 surf = pygame.surfarray.make_surface(np.transpose(rgb_frame, (1, 0, 2)))
                 self.display.blit(surf, (0, 0))
                 pygame.display.update()

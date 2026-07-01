@@ -18,7 +18,7 @@ class MarkerClickCapture:
     """
     Captures marker points by clicking on a pygame camera display.
     """
-    def __init__(self, camera_index=2):
+    def __init__(self, camera_index=0):
         self.camera_index = camera_index
         self.cap = cv.VideoCapture(camera_index)
         
@@ -227,7 +227,7 @@ def main():
     parser = argparse.ArgumentParser(description="Create markers CSV for perspective transformation")
     parser.add_argument("--output", type=str, default="markers.csv", 
                        help="Output CSV file path")
-    parser.add_argument("--camera", type=int, default=2, 
+    parser.add_argument("--camera", type=int, default=0, 
                        help="Camera index to use")
     args = parser.parse_args()
     

@@ -16,7 +16,6 @@
 Welcome to CARLA robustness test.
 """
 
-
 from __future__ import print_function
 
 
@@ -28,6 +27,7 @@ from __future__ import print_function
 import glob
 import os
 import sys
+
 
 try:
     sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
@@ -51,6 +51,7 @@ from carla import ColorConverter as cc
 import argparse
 import collections
 import datetime
+import time
 import logging
 import math
 import random
@@ -58,6 +59,9 @@ import re
 import weakref
 import csv
 import cv2 as cv
+import subprocess
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 # Pygame imports
 try:
@@ -177,17 +181,132 @@ class World(object):
         self.random_control_enabled = args.random_control_test
         self.random_control_active = False
         self.random_control_start_time = 0.0
-        self.random_control_interval = 15.0  # seconds between random controls
-        self.random_control_duration = 2.0   # duration of random control
-        self.random_control_intensity = 1.0  # intensity of the random control commmands
+        self.random_control_interval = 20.0  # seconds between random controls
+        self.random_control_duration = 0.5  # duration of random control
+        self.random_control_intensity = 0.5  # intensity of the random control commmands
+        # Random control test metrics tracking
+        self.random_control_initial_position = None  # Initial spawn position
+        self.random_control_start_delay = 2.0  # Wait 2 seconds after spawn before counting laps
+        self.random_control_lap_threshold = 5.0  # Distance threshold to consider returned to start
+        self.laps_completed = 0  # Number of completed laps
+        self.has_left_start_area = False  # Track if car has left initial position area
+        self.test_start_time = 0.0  # Test start time
+        self.test_duration = 0.0  # Duration of test until collision
         self.spawn_point_idx = 0  # sequential spawn point index
         self.position_test_enabled = args.position_test  # position test flag
         self.position_offset_idx = 0  # index for lateral position offsets [-5, 0, 5, 10]
         self.position_offsets = [-3.0,-2.0, 0.0]  # lateral offsets in meters
+        self.yaw_offsets = [-20.0,-10.0, 10.0, 20.0]
+        # Position test metrics tracking
+        self.position_test_initial_yaw = 0.0 # Initial yaw when test starts
+        self.position_test_initial_lateral_offset = 0.0  # Initial lateral offset
+        self.position_test_start_time = 0.0  # Simulation time when test restarts
+        self.recovery_time = None  # Time to recover orientation
+        self.orientation_threshold = 0.5  # Degrees within which we consider orientation recovered
+        self.lateral_offset_threshold = 0.5  # Meters within which we consider lateral position recovered
+        self.position_test_metrics = []  # List of metrics for each restart
+
+        # Velocity test metrics tracking
+        self.velocity_test_enabled = args.velocity_test
+        self.velocity_test_initial_velocity = 0.0  # Initial velocity applied
+        self.velocity_recovery_time = None  # Time to recover to default velocity
+        self.velocity_recovery_threshold = 1.0  # km/h threshold to consider recovered
+        self.default_target_velocity = 25.0  # Default target velocity in km/h
+        self.velocity_test_metrics = []  # List of metrics for each restart
+
+        # Random control test metrics tracking
+        self.random_control_test_metrics = []  # List of metrics for each restart
+        self.max_laps = 5  # Number of laps to complete for each random control test
+        self.current_lap_start_time = 0.0  # Simulation time when current lap started
+        self.lap_positions = []  # List of (x, y) positions recorded during current lap
+        self.waypoints = []  # Waypoints loaded from CSV file
+        self.waypoints_file = args.waypoints_csv if hasattr(args, 'waypoints_csv') else None  # Path to waypoints CSV
+        self.lane_invasion_count = 0  # Total lane invasions during random control test
+        self.current_lap_lane_invasions = 0  # Lane invasions in current lap
+        self.deviation_executor = ThreadPoolExecutor(max_workers=1)  # Limit to 1 thread for deviation calculations to prevent resource exhaustion
+
         self.restart()
         self.world.on_tick(hud.on_world_tick)
         self.recording_enabled = False
         self.recording_start = 0
+
+        if self.random_control_enabled:
+            self.max_restarts = 1
+            # Load waypoints if file exists
+            if self.waypoints_file:
+                self.waypoints = self._load_waypoints(self.waypoints_file)
+        elif self.position_test_enabled:
+            self.max_restarts = len(self.position_offsets) * len(self.yaw_offsets) - 1 # -1 because the first restart is the default position
+        elif self.velocity_test_enabled:
+            self.max_restarts = len(load_spawn_points(self.spawn_points_csv)) - 1 # -1 because the first restart is the default position
+
+
+    def _load_waypoints(self, file_path):
+        """Load waypoints from CSV file.
+        
+        Args:
+            file_path: Path to CSV file with columns: index, x, y
+            
+        Returns:
+            List of tuples (x, y) for each waypoint
+        """
+        waypoints = []
+        try:
+            with open(file_path, 'r') as csvfile:
+                reader = csv.reader(csvfile)
+                for row in reader:
+                    if len(row) >= 3:
+                        waypoints.append((float(row[1]), float(row[2])))
+            print(f"Loaded {len(waypoints)} waypoints from {file_path}")
+        except Exception as e:
+            print(f"Error loading waypoints: {e}")
+        return waypoints
+
+    def calculate_path_deviation(self, recorded_positions):
+        """Calculate deviation between recorded path and waypoints using vectorized numpy operations.
+        
+        Args:
+            recorded_positions: List of (x, y) positions recorded during the lap
+            
+        Returns:
+            Dictionary with deviation metrics (mean, max, std_dev)
+        """
+        if not self.waypoints or not recorded_positions:
+            return {'mean': 0.0, 'max': 0.0, 'std_dev': 0.0}
+        
+        # Convert to numpy arrays for vectorized operations (much faster than nested loops)
+        rec_pos_array = np.array(recorded_positions, dtype=np.float32)  # Shape: (n, 2)
+        way_pos_array = np.array(self.waypoints, dtype=np.float32)  # Shape: (m, 2)
+        
+        # Compute pairwise distances using broadcasting: (n, m, 2) -> (n, m)
+        # This is much faster than nested Python loops
+        diff = rec_pos_array[:, np.newaxis, :] - way_pos_array[np.newaxis, :, :]  # Shape: (n, m, 2)
+        distances = np.sqrt((diff ** 2).sum(axis=2))  # Shape: (n, m)
+        
+        # Find minimum distance (closest waypoint) for each recorded position
+        deviations = distances.min(axis=1)  # Shape: (n,)
+        
+        if len(deviations) > 0:
+            mean_dev = float(np.mean(deviations))
+            max_dev = float(np.max(deviations))
+            std_dev = float(np.std(deviations))
+            return {'mean': mean_dev, 'max': max_dev, 'std_dev': std_dev}
+        
+        return {'mean': 0.0, 'max': 0.0, 'std_dev': 0.0}
+
+    def calculate_path_deviation_threaded(self, recorded_positions, metric_entry):
+        """Calculate path deviation in a separate thread to avoid blocking model inference.
+        
+        Args:
+            recorded_positions: List of (x, y) positions recorded during the lap
+            metric_entry: Dictionary to store the results (passed by reference)
+        """
+        deviation_metrics = self.calculate_path_deviation(recorded_positions)
+        metric_entry['path_deviation_mean'] = deviation_metrics['mean']
+        metric_entry['path_deviation_max'] = deviation_metrics['max']
+        metric_entry['path_deviation_stddev'] = deviation_metrics['std_dev']
+        metric_entry['deviation_ready'] = True
+        print(f"  Path deviation calculated - Mean: {deviation_metrics['mean']:.2f}m, Max: {deviation_metrics['max']:.2f}m, StdDev: {deviation_metrics['std_dev']:.2f}m")
 
     def camera_callback(self, image, return_image):
         return_image[0] = image
@@ -237,7 +356,7 @@ class World(object):
 
         # Set up the sensors.
         self.collision_sensor = CollisionSensor(self.player, self.hud)
-        self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud)
+        self.lane_invasion_sensor = LaneInvasionSensor(self.player, self.hud, self)
         self.gnss_sensor = GnssSensor(self.player)
         self.camera_manager = CameraManager(self.player, self.hud, self._gamma)
         self.camera_manager.transform_index = cam_pos_index
@@ -254,25 +373,30 @@ class World(object):
         
         # Apply lateral position offset if position_test is enabled
         if self.position_test_enabled:
+
             current_transform = self.player.get_transform()
             yaw = math.radians(current_transform.rotation.yaw)
             # Lateral direction is perpendicular to forward direction
             lateral_direction = carla.Vector3D(-math.sin(yaw), math.cos(yaw), 0.0)
             # Get the offset for this restart
-            offset_value = self.position_offsets[self.position_offset_idx]
+            offset_value = self.position_offsets[self.position_offset_idx // len(self.yaw_offsets)]
             # Calculate the new location
             new_location = current_transform.location + lateral_direction * offset_value
+
             # Apply random yaw rotation between -25 and 25 degrees
-            random_yaw = random.uniform(-25.0, 25.0)
-            new_yaw = current_transform.rotation.yaw + random_yaw
+            new_yaw = current_transform.rotation.yaw + self.yaw_offsets[self.position_offset_idx % len(self.yaw_offsets)]
             new_rotation = carla.Rotation(pitch=current_transform.rotation.pitch, 
                                          yaw=new_yaw, 
                                          roll=current_transform.rotation.roll)
             new_transform = carla.Transform(new_location, new_rotation)
             self.player.set_transform(new_transform)
-            print(f"Position test: Applied lateral offset of {offset_value}m and rotation of {random_yaw:.1f}°")
+            print(f"Position test: Applied lateral offset of {offset_value}m and rotation of {new_yaw:.1f}°")
+            # Store initial conditions for metrics tracking
+            self.position_test_initial_yaw = new_yaw
+            self.position_test_initial_lateral_offset = offset_value
+            self.recovery_time = None
             # Increment offset index for next restart
-            self.position_offset_idx = (self.position_offset_idx + 1) % len(self.position_offsets)
+            self.position_offset_idx = self.position_offset_idx + 1
         else:
             # Increment spawn point index for next restart, wrapping around
             spawn_points = self.world.get_map().get_spawn_points()
@@ -307,6 +431,37 @@ class World(object):
         forward_direction = carla.Vector3D(math.cos(yaw), math.sin(yaw), 0.0)
         self.player.set_target_velocity(forward_direction * random_speed)
 
+    def get_orientation_and_lateral_position_offset(self):
+        """Get the vehicle's current yaw angle and lateral position offset.
+        
+        Returns:
+            tuple: (yaw_angle in degrees, lateral_offset in meters)
+        """
+        transform = self.player.get_transform()
+        yaw = transform.rotation.yaw
+
+        # To get lateral position, we need to calculate distance from the road center
+        # Get vehicle location
+        location = transform.location
+        
+        # Get the spawn point to establish reference
+        spawn_points = self.world.get_map().get_spawn_points()
+        route_1_indices = load_spawn_points(self.spawn_points_csv)
+        spawn_point_location = spawn_points[route_1_indices[self.spawn_point_idx]].location
+
+        # Calculate lateral direction perpendicular to the spawn point's forward direction
+        spawn_yaw_rad = math.radians(spawn_points[route_1_indices[self.spawn_point_idx]].rotation.yaw)
+        lateral_direction = carla.Vector3D(-math.sin(spawn_yaw_rad), math.cos(spawn_yaw_rad), 0.0)
+        
+        # Calculate offset from spawn point
+        delta = location - spawn_point_location
+        lateral_offset = delta.x * lateral_direction.x + delta.y * lateral_direction.y
+        
+        # Calculate yaw offset from the correct orientation
+        yaw_offset = spawn_points[route_1_indices[self.spawn_point_idx]].rotation.yaw - yaw
+
+        return yaw_offset, lateral_offset
+
     def destroy(self):
         sensors = [
             self.camera_manager.sensor,
@@ -320,6 +475,8 @@ class World(object):
                 sensor.destroy()
         if self.player is not None:
             self.player.destroy()
+        # Shutdown the thread pool executor
+        self.deviation_executor.shutdown(wait=True)
 
 # ==============================================================================
 # -- HUD -----------------------------------------------------------------------
@@ -558,13 +715,14 @@ class CollisionSensor(object):
 
 
 class LaneInvasionSensor(object):
-    def __init__(self, parent_actor, hud):
+    def __init__(self, parent_actor, hud, world=None):
         self.sensor = None
         self._parent = parent_actor
         self.hud = hud
-        world = self._parent.get_world()
-        bp = world.get_blueprint_library().find('sensor.other.lane_invasion')
-        self.sensor = world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
+        self.world = world  # Reference to world for tracking invasions during random control test
+        carla_world = self._parent.get_world()
+        bp = carla_world.get_blueprint_library().find('sensor.other.lane_invasion')
+        self.sensor = carla_world.spawn_actor(bp, carla.Transform(), attach_to=self._parent)
         # We need to pass the lambda a weak reference to self to avoid circular
         # reference.
         weak_self = weakref.ref(self)
@@ -578,6 +736,10 @@ class LaneInvasionSensor(object):
         lane_types = set(x.type for x in event.crossed_lane_markings)
         text = ['%r' % str(x).split()[-1] for x in lane_types]
         self.hud.notification('Crossed line %s' % ' and '.join(text))
+        # Track lane invasions during random control test
+        if self.world and self.world.random_control_enabled:
+            self.world.lane_invasion_count += 1
+            self.world.current_lap_lane_invasions += 1
 
 # ==============================================================================
 # -- GnssSensor --------------------------------------------------------
@@ -733,7 +895,7 @@ class CameraManager(object):
             lidar_img_size = (self.hud.dim[0], self.hud.dim[1], 3)
             lidar_img = np.zeros((lidar_img_size), dtype=np.uint8)
             lidar_img[tuple(lidar_data.T)] = (255, 255, 255)
-            self.surface = pygame.surfarray.make_surface(lidar_img)
+            self.surface = pygame.surfarray.marestartke_surface(lidar_img)
         elif self.sensors[self.index][0].startswith('sensor.camera.dvs'):
             # Example of converting the raw_data from a carla.DVSEventArray
             # sensor into a NumPy array and using it as an image
@@ -854,6 +1016,7 @@ def game_loop(args):
 
     print("Model loaded successfully")
 
+
     try:
         client = carla.Client(args.host, args.port)
         client.set_timeout(20.0)
@@ -866,16 +1029,18 @@ def game_loop(args):
 
         hud = HUD(args.width, args.height)
         world = World(client.get_world(), hud, args)
-
+        
         clock = pygame.time.Clock()
 
-        random_control_timer = 0.0
+        max_restarts = world.max_restarts # number of restarts before ending the test, set to -1 for infinite restarts
+        random_control_timer = 0.0 # timer for random control intervals
         collision_count = 0  # Track number of collisions to detect new ones
         test_collisions = 0 # Number of total collisions during the test
         test_timer = 0.0  # Timer for position and velocity tests
         test_interval = args.test_time  # Restart every 20 seconds during tests
         restart_count = 0  # Track number of restarts for position/velocity tests
-        
+        test_restart_time = world.hud.simulation_time  # Track simulation time of current restart
+
         while True:
             clock.tick_busy_loop(60)
             world.tick(clock)
@@ -901,12 +1066,129 @@ def game_loop(args):
                         is_random_control_active = True
                         # Apply random control
                         random_control = carla.VehicleControl()
-                        random_control.throttle = random.uniform(0.0, world.random_control_intensity)
+                        random_control.throttle = random.uniform(0.5, 0.5 + world.random_control_intensity)
                         random_control.steer = random.uniform(-world.random_control_intensity, world.random_control_intensity)
                         world.player.apply_control(random_control)
                 else:
                     world.random_control_active = False
-        
+            
+            # Position test metrics
+            if args.position_test and world.position_test_enabled:
+                time_since_restart = world.hud.simulation_time - test_restart_time
+                current_yaw_offset, current_lateral_offset = world.get_orientation_and_lateral_position_offset()
+
+                if abs(current_yaw_offset) < world.orientation_threshold and abs(current_lateral_offset) < world.lateral_offset_threshold:
+                    if world.recovery_time is None and time_since_restart > 0.5:  # Add a small buffer to avoid false positives immediately after restart
+                        world.recovery_time = time_since_restart
+                        print(f"Recovery achieved in {world.recovery_time:.2f}s")
+
+            # Velocity test metrics
+            if args.velocity_test and world.velocity_test_enabled:
+                time_since_restart = world.hud.simulation_time - test_restart_time
+                v = world.player.get_velocity()
+                current_velocity = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+
+                if abs(current_velocity - world.default_target_velocity) < world.velocity_recovery_threshold:
+                    if world.velocity_recovery_time is None and time_since_restart > 0.5:  # Add buffer to avoid false positives
+                        world.velocity_recovery_time = time_since_restart
+                        print(f"Velocity recovery achieved in {world.velocity_recovery_time:.2f}s (current: {current_velocity:.2f} km/h)")
+
+            # Random control test metrics - lap tracking
+            if args.random_control_test and world.random_control_enabled:
+                # Initialize on first iteration
+                if world.random_control_initial_position is None:
+                    world.random_control_initial_position = world.player.get_location()
+                    world.test_start_time = world.hud.simulation_time
+
+                # Wait before counting laps to avoid false positives at spawn
+                time_since_test_start = world.hud.simulation_time - world.test_start_time
+
+                if time_since_test_start > world.random_control_start_delay:
+                    current_location = world.player.get_location()
+                    distance_from_start = current_location.distance(world.random_control_initial_position)
+
+                    # Check if car has left start area
+                    if distance_from_start > world.random_control_lap_threshold:
+                        world.has_left_start_area = True
+                        # Initialize lap start time on first departure
+                        if world.current_lap_start_time == 0.0:
+                            world.current_lap_start_time = world.hud.simulation_time
+                        # Record position during lap
+                        if world.laps_completed < world.max_laps:  # Only record while completing laps
+                            world.lap_positions.append((current_location.x, current_location.y))
+
+                    # Count lap when returning to start after leaving
+                    if world.has_left_start_area and distance_from_start < world.random_control_lap_threshold:
+                        world.laps_completed += 1
+                        world.has_left_start_area = False
+                        # Calculate lap time
+                        lap_time = world.hud.simulation_time - world.current_lap_start_time
+                        print(f"Lap {world.laps_completed} completed in {lap_time:.2f}s!")
+                        
+                        # Create metric entry with placeholder values (will be filled by thread)
+                        metric_entry = {
+                            'lap_num': world.laps_completed,
+                            'lap_time': lap_time,
+                            'lane_invasions': world.current_lap_lane_invasions,
+                            'path_deviation_mean': 0.0,
+                            'path_deviation_max': 0.0,
+                            'path_deviation_stddev': 0.0,
+                            'deviation_ready': False
+                        }
+                        world.random_control_test_metrics.append(metric_entry)
+                        
+                        # Start deviation calculation in thread pool (queued, limited concurrency to prevent slowdown)
+                        positions_copy = list(world.lap_positions)
+                        world.deviation_executor.submit(
+                            world.calculate_path_deviation_threaded,
+                            positions_copy,
+                            metric_entry
+                        )
+                        
+                        # Reset lap start time, positions, and lane invasions for next lap
+                        world.current_lap_start_time = world.hud.simulation_time
+                        world.lap_positions = []
+                        world.current_lap_lane_invasions = 0
+                        # End test if 5 laps completed
+                        if world.laps_completed >= world.max_laps:
+                            world.test_duration = world.hud.simulation_time - world.test_start_time
+                            print(f"\n=== RANDOM CONTROL TEST SUMMARY ===")
+                            print(f"Test duration: {world.test_duration:.2f}s")
+                            print(f"Laps completed: {world.laps_completed}")
+                            
+                            # Wait for all deviation calculations to complete
+                            print("Waiting for deviation calculations to complete...")
+                            while True:
+                                all_ready = True
+                                for metric in world.random_control_test_metrics:
+                                    if not metric.get('deviation_ready', False):
+                                        all_ready = False
+                                        break
+                                if all_ready:
+                                    break
+                                time.sleep(0.1)
+                            
+                            # Print lap times and deviations
+                            avg_lap_time = 0
+                            avg_lane_invasions = 0
+                            for metric in world.random_control_test_metrics:
+                                avg_lap_time += metric['lap_time']
+                                avg_lane_invasions += metric['lane_invasions']
+                            if world.random_control_test_metrics:
+                                avg_lap_time /= len(world.random_control_test_metrics)
+                                avg_lane_invasions /= len(world.random_control_test_metrics)
+                                avg_deviation = 0
+                                for metric in world.random_control_test_metrics:
+                                    avg_deviation += metric['path_deviation_mean']
+                                avg_deviation /= len(world.random_control_test_metrics)
+                                
+                                print(f"Average lap time: {avg_lap_time:.2f}s")
+                                print(f"Average lane invasions per lap: {avg_lane_invasions:.2f}")
+                                print(f"Total lane invasions: {world.lane_invasion_count}")
+                                print(f"Average path deviation: {avg_deviation:.2f}m")
+                                for metric in world.random_control_test_metrics:
+                                    print(f"  Lap {metric['lap_num']}: {metric['lap_time']:.2f}s, Lane invasions: {metric['lane_invasions']}, Deviation: {metric['path_deviation_mean']:.2f}m")
+                            break
             if image is not None and not is_random_control_active:
                 image = carla_cam_to_image(image)
                 image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
@@ -943,38 +1225,156 @@ def game_loop(args):
             current_collisions = len(world.collision_sensor.history)
             should_restart = False
             restart_reason = ""
-            
-            if current_collisions > collision_count and not args.random_control_test:
+
+            if current_collisions > collision_count:
                 collision_count = current_collisions
-                should_restart = True
-                restart_reason = f"Collision detected! Total collisions: {collision_count}"
-                test_collisions += 1
+                if args.random_control_test:
+                    # End random control test on collision
+                    world.test_duration = world.hud.simulation_time - world.test_start_time
+                    print(f"\n=== RANDOM CONTROL TEST SUMMARY ===")
+                    print(f"Test duration: {world.test_duration:.2f}s")
+                    print(f"Total collisions: {collision_count}")
+                    print(f"Laps completed: {world.laps_completed}")
+                    
+                    # Wait for all deviation calculations to complete
+                    if world.random_control_test_metrics:
+                        print("Waiting for deviation calculations to complete...")
+                        while True:
+                            all_ready = True
+                            for metric in world.random_control_test_metrics:
+                                if not metric.get('deviation_ready', False):
+                                    all_ready = False
+                                    break
+                            if all_ready:
+                                break
+                            time.sleep(0.1)
+                    break
+                else:
+                    should_restart = True
+                    restart_reason = f"Collision detected! Total collisions: {collision_count}"
+                    test_collisions += 1
             
             # Check for time-based restart during position or velocity tests
             if (args.position_test or args.velocity_test) and test_timer >= test_interval:
                 should_restart = True
                 restart_reason = f"Time limit reached"
                 test_timer = 0.0
-            # if current_position == init_position :
 
-            
             if should_restart:
                 print(restart_reason)
-                world.restart()
-                restart_count += 1
                 
+                # Record position test metrics
+                if args.position_test:
+                    test_restart_time = world.hud.simulation_time  # Reset position test timer on restart
+                    metric_entry = {
+                        'restart_num': restart_count,
+                        'initial_yaw': world.position_test_initial_yaw,
+                        'initial_lateral_offset': world.position_test_initial_lateral_offset,
+                        'recovery_time': world.recovery_time,
+                    }
+                    world.position_test_metrics.append(metric_entry)
+                    print(f"Position test restart #{restart_count}:")
+                    print(f"  Initial yaw: {world.position_test_initial_yaw:.2f}°, Initial lateral offset: {world.position_test_initial_lateral_offset:.2f}m")
+                    if world.recovery_time is not None:
+                        print(f"  Recovery Time: {world.recovery_time:.2f}s")
+                    else:
+                        print(f"  Recovery not achieved")
+
+                # Record velocity test metrics
                 if args.velocity_test:
+                    test_restart_time = world.hud.simulation_time
+                    metric_entry = {
+                        'restart_num': restart_count,
+                        'initial_velocity': world.velocity_test_initial_velocity,
+                        'recovery_time': world.velocity_recovery_time,
+                    }
+                    world.velocity_test_metrics.append(metric_entry)
+                    print(f"Velocity test restart #{restart_count}:")
+                    print(f"  Initial velocity: {world.velocity_test_initial_velocity:.2f} km/h")
+                    if world.velocity_recovery_time is not None:
+                        print(f"  Recovery Time: {world.velocity_recovery_time:.2f}s")
+                    else:
+                        print(f"  Recovery not achieved")
+
                     world.apply_random_velocity()
-                    print("Applied random velocity to vehicle")
-                if (args.position_test or args.velocity_test) and restart_count >= args.max_restarts:
+                    v = world.player.get_velocity()
+                    world.velocity_test_initial_velocity = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
+                    world.velocity_recovery_time = None
+                    print(f"Applied velocity to vehicle: {world.velocity_test_initial_velocity:.2f} km/h")
+    
+                if (args.position_test or args.velocity_test) and restart_count >= max_restarts:
                     print(f"Max restarts reached. Ending test.")
                     print(f"Total collisions of the test: {test_collisions}")
+
+                    # Print final summary of position test metrics
+                    if args.position_test:
+                        print("\n=== POSITION TEST SUMMARY ===")
+                        print(f"Total restarts: {restart_count}")
+                        avg_recovery_time = 0
+                        recovery_success = 0
+                        for metric in world.position_test_metrics:
+                            if metric['recovery_time'] is not None:
+                                avg_recovery_time += metric['recovery_time']
+                                recovery_success += 1
+
+                        if recovery_success > 0:
+                            avg_recovery_time /= recovery_success
+                            print(f"Average recovery time: {avg_recovery_time:.2f}s ({recovery_success}/{restart_count+1} successful)")
+                        else:
+                            print(f"Recovery: No successful recoveries")
+
+                    # Print final summary of velocity test metrics
+                    if args.velocity_test:
+                        print("\n=== VELOCITY TEST SUMMARY ===")
+                        print(f"Total restarts: {restart_count}")
+                        avg_recovery_time = 0
+                        recovery_success = 0
+                        for metric in world.velocity_test_metrics:
+                            if metric['recovery_time'] is not None:
+                                avg_recovery_time += metric['recovery_time']
+                                recovery_success += 1
+
+                        if recovery_success > 0:
+                            avg_recovery_time /= recovery_success
+                            print(f"Average recovery time: {avg_recovery_time:.2f}s ({recovery_success}/{restart_count+1} successful)")
+                        else:
+                            print(f"Recovery: No successful recoveries")
                     break
+                world.restart()
+                restart_count += 1
+            
     finally:
         if world is not None:
             world.destroy()
 
         pygame.quit()
+
+
+# Function to close CARLA simulation
+def close_carla():
+
+    try:
+        ps_output = subprocess.check_output(["ps", "-Af"]).decode('utf-8').strip("\n")
+    except subprocess.CalledProcessError as ce:
+        logging.error("SimulatorEnv: exception raised executing ps command {}".format(ce))
+        sys.exit(-1)
+
+
+    if ps_output.count('CarlaUE4.sh') > 0:
+        # kill zombies processes -> nohup ./CarlaUE4.sh > /dev/null 2>&1 &
+        try:
+            subprocess.check_call(["killall", "-9", "CarlaUE4.sh"])
+            logging.debug("SimulatorEnv: CARLA server killed.")
+        except subprocess.CalledProcessError as ce:
+            logging.error("SimulatorEnv: exception raised executing killall command for CARLA server {}".format(ce))
+
+    if ps_output.count('CarlaUE4-Linux-Shipping') > 0:
+        try:
+            subprocess.check_call(["killall", "-9", "CarlaUE4-Linux-Shipping"])
+            logging.debug("SimulatorEnv: CarlaUE4-Linux-Shipping killed.")
+        except subprocess.CalledProcessError as ce:
+            logging.error("SimulatorEnv: exception raised executing killall command for CarlaUE4-Linux-Shipping {}".format(ce))
+
 
 
 # ==============================================================================
@@ -1040,11 +1440,11 @@ def main():
     argparser.add_argument("--town_name", type=str,default="Town01", help="Carla Map to load")
     argparser.add_argument("--model", type=str, default='pilotnet', help="Model type")
     argparser.add_argument("--model_path", type=str, help="Path to the saved model")
-    argparser.add_argument("--test_time", type=float, default=10.0, help="Time to restarrt the simulation")
+    argparser.add_argument("--test_time", type=float, default=15.0, help="Time to restarrt the simulation")
     argparser.add_argument("--position_test", type=bool, default=False, help="Enable different starting position to test robustness")
     argparser.add_argument("--velocity_test", type=bool, default=False, help="Enable different starting velocity to test robustness")
     argparser.add_argument("--random_control_test", type=bool, default=False, help="Enable random control to test robustness")
-    argparser.add_argument("--max_restarts", type=int, default=5, help="Maximum number of restarts for position/velocity tests (default: 6)")
+    argparser.add_argument("--waypoints_csv", type=str, default="./carla_map_01_waypoints.csv", help="Waypoints file")
     args = argparser.parse_args()
 
     args.width, args.height = [int(x) for x in args.res.split('x')]
@@ -1056,11 +1456,30 @@ def main():
 
     print(__doc__)
 
+
+    carla_bin = os.path.join(os.environ["CARLA_ROOT"], "CarlaUE4.sh")
+    carla_root = os.environ.get("CARLA_ROOT")
+        
+  
+    with open("/tmp/.carla_stdout.log", "w") as out, open("/tmp/.carla_stderr.log", "w") as err:
+        subprocess.Popen([carla_bin, "-RenderOffScreen", "-prefernvidia"],  # "/bin/bash", 
+                         cwd=carla_root,
+                         stdout=out, stderr=err,
+                         shell=False,
+                         env=os.environ
+                         )
+    logging.info("CARLA server started")
+    time.sleep(10)
+
     try:
         game_loop(args)
-
     except KeyboardInterrupt:
         print('\nCancelled by user. Bye!')
+    finally:
+        logging.info("Finishing CAARLA server")
+        close_carla()
+
+
 
 
 if __name__ == '__main__':

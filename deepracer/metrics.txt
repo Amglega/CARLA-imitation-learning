@@ -1,10 +1,10 @@
 ==================================================
 TRAJECTORY COMPARISON RESULTS
 ==================================================
-Total Deviation: 10394.29 pixels
-Mean Deviation: 9.70 pixels
-Number of Checkpoints: 1072
-Max Deviation: 42.15 pixels
+Total Deviation: 8768.33 pixels
+Mean Deviation: 10.54 pixels
+Number of Checkpoints: 832
+Max Deviation: 49.93 pixels
 Min Deviation: 0.00 pixels
-Covered Checkpoints: 41/1072
+Covered Checkpoints: 744/832
 ==================================================

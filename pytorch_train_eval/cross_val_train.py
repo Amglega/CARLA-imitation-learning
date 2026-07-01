@@ -215,7 +215,7 @@ if __name__=="__main__":
                     labels = FLOAT(labels.float()).to(device)
                     outputs = model(images)
                     val_loss += criterion(outputs, labels).item()
-                    
+
                 avg_val_loss = val_loss / len(val_loader)  # take average
             
             fold_val_losses.append(avg_val_loss)

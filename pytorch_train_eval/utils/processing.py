@@ -34,6 +34,9 @@ def get_images(list_images, type_image, array_imgs):
         if type_image == 'cropped':
             img = img[240:480, 0:640]
             img = cv2.resize(img, (int(200), int(66)))
+        if type_image == 'smallcrop':
+            img = img[120:480, 0:640]
+            img = cv2.resize(img, (int(200), int(66)))
         else:
             target_height = int(66)
             target_width = int(target_height * img.shape[1]/img.shape[0])
@@ -63,7 +66,6 @@ def parse_json(data, array):
 
 def parse_csv(data, array):
     # Process csv
-
     for v, w in data:
         array.append((float(v), float(w)))
     return array

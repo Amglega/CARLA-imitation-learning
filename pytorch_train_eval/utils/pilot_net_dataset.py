@@ -16,6 +16,8 @@ class PilotNetDataset(Dataset):
         if preprocessing is not None:
             if 'nocrop' in preprocessing:
                 type_image = None
+            elif 'smallcrop' in preprocessing:
+                type_image = 'smallcrop'
             else:
                 type_image = 'cropped'
             
@@ -27,18 +29,18 @@ class PilotNetDataset(Dataset):
             type_image = 'cropped'
             data_type = None
         #print(inspect.getsource(load_data))
-        print('*'*8, "Loading Datasets", '*'*8)    
-        for path in path_to_data: 
+        print('*'*8, "Loading Datasets", '*'*8)  
+        print(path_to_data)  
+        for path in path_to_data:
             all_images, all_data = load_data(path)
             self.images = get_images(all_images, type_image, self.images)        
-            self.labels = parse_csv(all_data, self.labels)
+            self.labels = parse_csv(all_data, self.labels)        
         
- 
         self.labels, self.images = preprocess_data(self.labels, self.images, flip_images, data_type)
-
+        
 
         self.transforms = transforms
-        
+
         self.image_shape = self.images[0].shape
         self.num_labels = np.array(self.labels[0]).shape[0]
         self.count = len(self.images)
