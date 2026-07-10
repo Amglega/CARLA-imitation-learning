@@ -1,0 +1,1498 @@
+<?xml version="1.0"?>
+<net name="Model2" version="11">
+	<layers>
+		<layer id="0" name="img" type="Parameter" version="opset1">
+			<data shape="..." element_type="dynamic" />
+			<output>
+				<port id="0" precision="UNSPECIFIED" names="img" />
+			</output>
+		</layer>
+		<layer id="1" name="Constant_57_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="3" offset="0" size="6" />
+			<output>
+				<port id="0" precision="FP16" names="34,self.ln_1.weight">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="2" name="Constant_57" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="3" name="aten::batch_norm/ConvertLike" type="ConvertLike" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>3</dim>
+				</port>
+				<port id="1" precision="UNSPECIFIED" />
+			</input>
+			<output>
+				<port id="2" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="4" name="Constant_55_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="3" offset="6" size="6" />
+			<output>
+				<port id="0" precision="FP16" names="33,self.ln_1.bias">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="5" name="Constant_55" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="6" name="aten::batch_norm/ConvertLike_1" type="ConvertLike" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>3</dim>
+				</port>
+				<port id="1" precision="UNSPECIFIED" />
+			</input>
+			<output>
+				<port id="2" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="7" name="Constant_61_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="3" offset="12" size="6" />
+			<output>
+				<port id="0" precision="FP16" names="36,self.ln_1.running_mean">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="8" name="Constant_61" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="9" name="aten::batch_norm/ConvertLike_2" type="ConvertLike" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>3</dim>
+				</port>
+				<port id="1" precision="UNSPECIFIED" />
+			</input>
+			<output>
+				<port id="2" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="10" name="Constant_59_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="3" offset="18" size="6" />
+			<output>
+				<port id="0" precision="FP16" names="35,self.ln_1.running_var">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="11" name="Constant_59" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="12" name="aten::batch_norm/ConvertLike_3" type="ConvertLike" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>3</dim>
+				</port>
+				<port id="1" precision="UNSPECIFIED" />
+			</input>
+			<output>
+				<port id="2" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="13" name="aten::batch_norm/BatchNormInference" type="BatchNormInference" version="opset5">
+			<data epsilon="0.0010000000474974513" />
+			<input>
+				<port id="0" precision="UNSPECIFIED" />
+				<port id="1" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+				<port id="2" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+				<port id="3" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+				<port id="4" precision="UNSPECIFIED">
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="5" precision="UNSPECIFIED" names="41,out.1" />
+			</output>
+		</layer>
+		<layer id="14" name="Constant_53_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="24, 3, 5, 5" offset="24" size="3600" />
+			<output>
+				<port id="0" precision="FP16" names="32,self.cn_1.weight">
+					<dim>24</dim>
+					<dim>3</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="15" name="Constant_53" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>24</dim>
+					<dim>3</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>24</dim>
+					<dim>3</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="16" name="aten::conv2d/Convolution" type="Convolution" version="opset1">
+			<data strides="2, 2" dilations="1, 1" pads_begin="0, 0" pads_end="0, 0" auto_pad="explicit" />
+			<input>
+				<port id="0" precision="UNSPECIFIED" />
+				<port id="1" precision="FP32">
+					<dim>24</dim>
+					<dim>3</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>24</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="17" name="aten::conv2d/Reshape_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 24, 1, 1" offset="3624" size="48" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>24</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="18" name="aten::conv2d/Reshape" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>24</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>24</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="19" name="aten::conv2d/Add" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>24</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>24</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="42,out.5">
+					<dim>-1</dim>
+					<dim>24</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="20" name="aten::relu/Relu" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>24</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="43,out.9">
+					<dim>-1</dim>
+					<dim>24</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="21" name="Constant_49_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="36, 24, 5, 5" offset="3672" size="43200" />
+			<output>
+				<port id="0" precision="FP16" names="30,self.cn_2.weight">
+					<dim>36</dim>
+					<dim>24</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="22" name="Constant_49" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>36</dim>
+					<dim>24</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>36</dim>
+					<dim>24</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="23" name="aten::conv2d/Convolution_1" type="Convolution" version="opset1">
+			<data strides="2, 2" dilations="1, 1" pads_begin="0, 0" pads_end="0, 0" auto_pad="explicit" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>24</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>36</dim>
+					<dim>24</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>36</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="24" name="aten::conv2d/Reshape_1_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 36, 1, 1" offset="46872" size="72" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>36</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="25" name="aten::conv2d/Reshape_1" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>36</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>36</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="26" name="aten::conv2d/Add_1" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>36</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>36</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="44,out.13">
+					<dim>-1</dim>
+					<dim>36</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="27" name="aten::relu/Relu_1" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>36</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="45,out.17">
+					<dim>-1</dim>
+					<dim>36</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="28" name="Constant_45_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="48, 36, 5, 5" offset="46944" size="86400" />
+			<output>
+				<port id="0" precision="FP16" names="28,self.cn_3.weight">
+					<dim>48</dim>
+					<dim>36</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="29" name="Constant_45" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>48</dim>
+					<dim>36</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>48</dim>
+					<dim>36</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="30" name="aten::conv2d/Convolution_2" type="Convolution" version="opset1">
+			<data strides="2, 2" dilations="1, 1" pads_begin="0, 0" pads_end="0, 0" auto_pad="explicit" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>36</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>48</dim>
+					<dim>36</dim>
+					<dim>5</dim>
+					<dim>5</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>48</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="31" name="aten::conv2d/Reshape_2_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 48, 1, 1" offset="133344" size="96" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>48</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="32" name="aten::conv2d/Reshape_2" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>48</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>48</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="33" name="aten::conv2d/Add_2" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>48</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>48</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="46,out.21">
+					<dim>-1</dim>
+					<dim>48</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="34" name="aten::relu/Relu_2" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>48</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="47,out.25">
+					<dim>-1</dim>
+					<dim>48</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="35" name="Constant_41_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="64, 48, 3, 3" offset="133440" size="55296" />
+			<output>
+				<port id="0" precision="FP16" names="26,self.cn_4.weight">
+					<dim>64</dim>
+					<dim>48</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="36" name="Constant_41" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>64</dim>
+					<dim>48</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>64</dim>
+					<dim>48</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="37" name="aten::conv2d/Convolution_3" type="Convolution" version="opset1">
+			<data strides="1, 1" dilations="1, 1" pads_begin="0, 0" pads_end="0, 0" auto_pad="explicit" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>48</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>64</dim>
+					<dim>48</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="38" name="aten::conv2d/Reshape_3_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 64, 1, 1" offset="188736" size="128" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="39" name="aten::conv2d/Reshape_3" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="40" name="aten::conv2d/Add_3" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="48,out.29">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="41" name="aten::relu/Relu_3" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="49,out.33">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="42" name="Constant_37_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="64, 64, 3, 3" offset="188864" size="73728" />
+			<output>
+				<port id="0" precision="FP16" names="24,self.cn_5.weight">
+					<dim>64</dim>
+					<dim>64</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="43" name="Constant_37" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>64</dim>
+					<dim>64</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>64</dim>
+					<dim>64</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="44" name="aten::conv2d/Convolution_4" type="Convolution" version="opset1">
+			<data strides="1, 1" dilations="1, 1" pads_begin="0, 0" pads_end="0, 0" auto_pad="explicit" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>64</dim>
+					<dim>64</dim>
+					<dim>3</dim>
+					<dim>3</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="45" name="aten::conv2d/Reshape_4_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 64, 1, 1" offset="262592" size="128" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="46" name="aten::conv2d/Reshape_4" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="47" name="aten::conv2d/Add_4" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>64</dim>
+					<dim>1</dim>
+					<dim>1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="50,out.37">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="48" name="aten::relu/Relu_4" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="51,out.41">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="49" name="Concat_544" type="Const" version="opset1">
+			<data element_type="i64" shape="2" offset="262720" size="16" />
+			<rt_info>
+				<attribute name="precise" version="0" />
+			</rt_info>
+			<output>
+				<port id="0" precision="I64">
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="50" name="aten::flatten/Reshape" type="Reshape" version="opset1">
+			<data special_zero="true" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>64</dim>
+					<dim>-1</dim>
+					<dim>-1</dim>
+				</port>
+				<port id="1" precision="I64">
+					<dim>2</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="52,out.45">
+					<dim>-1</dim>
+					<dim>1152</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="51" name="Constant_33_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1164, 1152" offset="262736" size="2681856" />
+			<output>
+				<port id="0" precision="FP16" names="22,self.fc_1.weight">
+					<dim>1164</dim>
+					<dim>1152</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="52" name="Constant_33" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1164</dim>
+					<dim>1152</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1164</dim>
+					<dim>1152</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="53" name="aten::linear/MatMul" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="true" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>1152</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1164</dim>
+					<dim>1152</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="54" name="Constant_2030_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 1164" offset="2944592" size="2328" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="55" name="Constant_2030" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>1164</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="56" name="aten::linear/Add" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>1164</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>1164</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="53,out.49">
+					<dim>-1</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="57" name="aten::relu/Relu_5" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>1164</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="54,out.53">
+					<dim>-1</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="58" name="Constant_29_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="100, 1164" offset="2946920" size="232800" />
+			<output>
+				<port id="0" precision="FP16" names="20,self.fc_2.weight">
+					<dim>100</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="59" name="Constant_29" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>100</dim>
+					<dim>1164</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>100</dim>
+					<dim>1164</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="60" name="aten::linear/MatMul_1" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="true" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>1164</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>100</dim>
+					<dim>1164</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="61" name="Constant_2031_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 100" offset="3179720" size="200" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="62" name="Constant_2031" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>100</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="63" name="aten::linear/Add_1" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>100</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>100</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="55,out.57">
+					<dim>-1</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="64" name="aten::relu/Relu_6" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>100</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="56,out.61">
+					<dim>-1</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="65" name="Constant_25_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="50, 100" offset="3179920" size="10000" />
+			<output>
+				<port id="0" precision="FP16" names="18,self.fc_3.weight">
+					<dim>50</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="66" name="Constant_25" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>50</dim>
+					<dim>100</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>50</dim>
+					<dim>100</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="67" name="aten::linear/MatMul_2" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="true" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>100</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>50</dim>
+					<dim>100</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="68" name="Constant_2032_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 50" offset="3189920" size="100" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="69" name="Constant_2032" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>50</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="70" name="aten::linear/Add_2" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>50</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>50</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="57,out.65">
+					<dim>-1</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="71" name="aten::relu/Relu_7" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>50</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="58,out.69">
+					<dim>-1</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="72" name="Constant_21_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="10, 50" offset="3190020" size="1000" />
+			<output>
+				<port id="0" precision="FP16" names="16,self.fc_4.weight">
+					<dim>10</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="73" name="Constant_21" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>10</dim>
+					<dim>50</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>10</dim>
+					<dim>50</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="74" name="aten::linear/MatMul_3" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="true" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>50</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>10</dim>
+					<dim>50</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="75" name="Constant_2033_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 10" offset="3191020" size="20" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="76" name="Constant_2033" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>10</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="77" name="aten::linear/Add_3" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>10</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>10</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="59,out.73">
+					<dim>-1</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="78" name="aten::relu/Relu_8" type="ReLU" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>10</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32" names="60,out.77">
+					<dim>-1</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="79" name="Constant_17_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="2, 10" offset="3191040" size="40" />
+			<output>
+				<port id="0" precision="FP16" names="14,self.fc_5.weight">
+					<dim>2</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="80" name="Constant_17" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>2</dim>
+					<dim>10</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>2</dim>
+					<dim>10</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="81" name="aten::linear/MatMul_4" type="MatMul" version="opset1">
+			<data transpose_a="false" transpose_b="true" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>10</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>2</dim>
+					<dim>10</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32">
+					<dim>-1</dim>
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="82" name="Constant_2034_compressed" type="Const" version="opset1">
+			<data element_type="f16" shape="1, 2" offset="3191080" size="4" />
+			<output>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="83" name="Constant_2034" type="Convert" version="opset1">
+			<data destination_type="f32" />
+			<rt_info>
+				<attribute name="decompression" version="0" />
+			</rt_info>
+			<input>
+				<port id="0" precision="FP16">
+					<dim>1</dim>
+					<dim>2</dim>
+				</port>
+			</input>
+			<output>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="84" name="aten::linear/Add_4" type="Add" version="opset1">
+			<data auto_broadcast="numpy" />
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>2</dim>
+				</port>
+				<port id="1" precision="FP32">
+					<dim>1</dim>
+					<dim>2</dim>
+				</port>
+			</input>
+			<output>
+				<port id="2" precision="FP32" names="out.81">
+					<dim>-1</dim>
+					<dim>2</dim>
+				</port>
+			</output>
+		</layer>
+		<layer id="85" name="Result_325" type="Result" version="opset1">
+			<input>
+				<port id="0" precision="FP32">
+					<dim>-1</dim>
+					<dim>2</dim>
+				</port>
+			</input>
+		</layer>
+	</layers>
+	<edges>
+		<edge from-layer="0" from-port="0" to-layer="3" to-port="1" />
+		<edge from-layer="0" from-port="0" to-layer="13" to-port="0" />
+		<edge from-layer="0" from-port="0" to-layer="12" to-port="1" />
+		<edge from-layer="0" from-port="0" to-layer="6" to-port="1" />
+		<edge from-layer="0" from-port="0" to-layer="9" to-port="1" />
+		<edge from-layer="1" from-port="0" to-layer="2" to-port="0" />
+		<edge from-layer="2" from-port="1" to-layer="3" to-port="0" />
+		<edge from-layer="3" from-port="2" to-layer="13" to-port="1" />
+		<edge from-layer="4" from-port="0" to-layer="5" to-port="0" />
+		<edge from-layer="5" from-port="1" to-layer="6" to-port="0" />
+		<edge from-layer="6" from-port="2" to-layer="13" to-port="2" />
+		<edge from-layer="7" from-port="0" to-layer="8" to-port="0" />
+		<edge from-layer="8" from-port="1" to-layer="9" to-port="0" />
+		<edge from-layer="9" from-port="2" to-layer="13" to-port="3" />
+		<edge from-layer="10" from-port="0" to-layer="11" to-port="0" />
+		<edge from-layer="11" from-port="1" to-layer="12" to-port="0" />
+		<edge from-layer="12" from-port="2" to-layer="13" to-port="4" />
+		<edge from-layer="13" from-port="5" to-layer="16" to-port="0" />
+		<edge from-layer="14" from-port="0" to-layer="15" to-port="0" />
+		<edge from-layer="15" from-port="1" to-layer="16" to-port="1" />
+		<edge from-layer="16" from-port="2" to-layer="19" to-port="0" />
+		<edge from-layer="17" from-port="0" to-layer="18" to-port="0" />
+		<edge from-layer="18" from-port="1" to-layer="19" to-port="1" />
+		<edge from-layer="19" from-port="2" to-layer="20" to-port="0" />
+		<edge from-layer="20" from-port="1" to-layer="23" to-port="0" />
+		<edge from-layer="21" from-port="0" to-layer="22" to-port="0" />
+		<edge from-layer="22" from-port="1" to-layer="23" to-port="1" />
+		<edge from-layer="23" from-port="2" to-layer="26" to-port="0" />
+		<edge from-layer="24" from-port="0" to-layer="25" to-port="0" />
+		<edge from-layer="25" from-port="1" to-layer="26" to-port="1" />
+		<edge from-layer="26" from-port="2" to-layer="27" to-port="0" />
+		<edge from-layer="27" from-port="1" to-layer="30" to-port="0" />
+		<edge from-layer="28" from-port="0" to-layer="29" to-port="0" />
+		<edge from-layer="29" from-port="1" to-layer="30" to-port="1" />
+		<edge from-layer="30" from-port="2" to-layer="33" to-port="0" />
+		<edge from-layer="31" from-port="0" to-layer="32" to-port="0" />
+		<edge from-layer="32" from-port="1" to-layer="33" to-port="1" />
+		<edge from-layer="33" from-port="2" to-layer="34" to-port="0" />
+		<edge from-layer="34" from-port="1" to-layer="37" to-port="0" />
+		<edge from-layer="35" from-port="0" to-layer="36" to-port="0" />
+		<edge from-layer="36" from-port="1" to-layer="37" to-port="1" />
+		<edge from-layer="37" from-port="2" to-layer="40" to-port="0" />
+		<edge from-layer="38" from-port="0" to-layer="39" to-port="0" />
+		<edge from-layer="39" from-port="1" to-layer="40" to-port="1" />
+		<edge from-layer="40" from-port="2" to-layer="41" to-port="0" />
+		<edge from-layer="41" from-port="1" to-layer="44" to-port="0" />
+		<edge from-layer="42" from-port="0" to-layer="43" to-port="0" />
+		<edge from-layer="43" from-port="1" to-layer="44" to-port="1" />
+		<edge from-layer="44" from-port="2" to-layer="47" to-port="0" />
+		<edge from-layer="45" from-port="0" to-layer="46" to-port="0" />
+		<edge from-layer="46" from-port="1" to-layer="47" to-port="1" />
+		<edge from-layer="47" from-port="2" to-layer="48" to-port="0" />
+		<edge from-layer="48" from-port="1" to-layer="50" to-port="0" />
+		<edge from-layer="49" from-port="0" to-layer="50" to-port="1" />
+		<edge from-layer="50" from-port="2" to-layer="53" to-port="0" />
+		<edge from-layer="51" from-port="0" to-layer="52" to-port="0" />
+		<edge from-layer="52" from-port="1" to-layer="53" to-port="1" />
+		<edge from-layer="53" from-port="2" to-layer="56" to-port="0" />
+		<edge from-layer="54" from-port="0" to-layer="55" to-port="0" />
+		<edge from-layer="55" from-port="1" to-layer="56" to-port="1" />
+		<edge from-layer="56" from-port="2" to-layer="57" to-port="0" />
+		<edge from-layer="57" from-port="1" to-layer="60" to-port="0" />
+		<edge from-layer="58" from-port="0" to-layer="59" to-port="0" />
+		<edge from-layer="59" from-port="1" to-layer="60" to-port="1" />
+		<edge from-layer="60" from-port="2" to-layer="63" to-port="0" />
+		<edge from-layer="61" from-port="0" to-layer="62" to-port="0" />
+		<edge from-layer="62" from-port="1" to-layer="63" to-port="1" />
+		<edge from-layer="63" from-port="2" to-layer="64" to-port="0" />
+		<edge from-layer="64" from-port="1" to-layer="67" to-port="0" />
+		<edge from-layer="65" from-port="0" to-layer="66" to-port="0" />
+		<edge from-layer="66" from-port="1" to-layer="67" to-port="1" />
+		<edge from-layer="67" from-port="2" to-layer="70" to-port="0" />
+		<edge from-layer="68" from-port="0" to-layer="69" to-port="0" />
+		<edge from-layer="69" from-port="1" to-layer="70" to-port="1" />
+		<edge from-layer="70" from-port="2" to-layer="71" to-port="0" />
+		<edge from-layer="71" from-port="1" to-layer="74" to-port="0" />
+		<edge from-layer="72" from-port="0" to-layer="73" to-port="0" />
+		<edge from-layer="73" from-port="1" to-layer="74" to-port="1" />
+		<edge from-layer="74" from-port="2" to-layer="77" to-port="0" />
+		<edge from-layer="75" from-port="0" to-layer="76" to-port="0" />
+		<edge from-layer="76" from-port="1" to-layer="77" to-port="1" />
+		<edge from-layer="77" from-port="2" to-layer="78" to-port="0" />
+		<edge from-layer="78" from-port="1" to-layer="81" to-port="0" />
+		<edge from-layer="79" from-port="0" to-layer="80" to-port="0" />
+		<edge from-layer="80" from-port="1" to-layer="81" to-port="1" />
+		<edge from-layer="81" from-port="2" to-layer="84" to-port="0" />
+		<edge from-layer="82" from-port="0" to-layer="83" to-port="0" />
+		<edge from-layer="83" from-port="1" to-layer="84" to-port="1" />
+		<edge from-layer="84" from-port="2" to-layer="85" to-port="0" />
+	</edges>
+	<rt_info>
+		<Runtime_version value="2024.4.0-16579-c3152d32c9c-releases/2024/4" />
+		<conversion_parameters>
+			<framework value="pytorch" />
+			<is_python_object value="True" />
+		</conversion_parameters>
+	</rt_info>
+</net>

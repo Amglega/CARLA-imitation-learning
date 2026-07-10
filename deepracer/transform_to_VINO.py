@@ -1,27 +1,23 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-# Script to convert a PyTorch model to OpenVINO format and save it on disk. 
-# It also compiles the model using OpenVINO runtime to check that the conversion was successful.
-
 import openvino as ov
 import torch
 from utils.pilotnet import PilotNet
 from pathlib import Path
 from PIL import Image
-
+import timm
 import torchvision
 
 
-MODEL_DIR = Path("openvino_models")
+MODEL_DIR = Path("my_vit_model")
 MODEL_DIR.mkdir(exist_ok=True)
-MODEL_NAME = "mobilenet"
+MODEL_NAME = "my_vit_model"
 
 image_shape = (66, 200, 3)
 num_labels = 2
 input_size =[66, 200]
 
-model = torchvision.models.mobilenet_v3_large()
+model = timm.create_model("fastvit_sa12")
+num_ftrs=model.head.fc.in_features
+model.head.fc= torch.nn.Linear(num_ftrs,2)
 model.eval()
 
 

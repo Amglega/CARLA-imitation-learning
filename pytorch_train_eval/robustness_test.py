@@ -397,7 +397,14 @@ class World(object):
             self.recovery_time = None
             # Increment offset index for next restart
             self.position_offset_idx = self.position_offset_idx + 1
-        else:
+        elif self.velocity_test_enabled:
+            # Apply random initial velocity between 10 and 30 km/h
+            random_velocity = random.uniform(10.0, 30.0)  # Speed in km/h
+            self.apply_random_velocity()
+            print(f"Velocity test: Applied initial velocity of {random_velocity:.2f} km/h")
+            # Store initial conditions for metrics tracking
+            self.velocity_test_initial_velocity = random_velocity
+            self.velocity_recovery_time = None
             # Increment spawn point index for next restart, wrapping around
             spawn_points = self.world.get_map().get_spawn_points()
             route_1_indices = load_spawn_points(self.spawn_points_csv)
@@ -1295,12 +1302,10 @@ def game_loop(args):
                         print(f"  Recovery Time: {world.velocity_recovery_time:.2f}s")
                     else:
                         print(f"  Recovery not achieved")
-
-                    world.apply_random_velocity()
                     v = world.player.get_velocity()
                     world.velocity_test_initial_velocity = 3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)
                     world.velocity_recovery_time = None
-                    print(f"Applied velocity to vehicle: {world.velocity_test_initial_velocity:.2f} km/h")
+                    
     
                 if (args.position_test or args.velocity_test) and restart_count >= max_restarts:
                     print(f"Max restarts reached. Ending test.")

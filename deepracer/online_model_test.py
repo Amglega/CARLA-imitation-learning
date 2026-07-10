@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -
-
-# This script tests a trained model with the data obtainfed from the DeepRacer car.
-# It loads the model, gets the current image from the camera, processes it, and sends the predicted throttle and angle values to the car.
-
 import os
 import numpy as np
 import cv2
@@ -12,16 +7,18 @@ import time
 import utils.hal as HAL
 import matplotlib.pyplot as plt
 import torch
-from torchvision import transforms
+import torch.nn as nn
+from torchvision import models, transforms
 from utils.pilotnet import PilotNet
+import timm
+import openvino as ov
 
 def parse_args():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--net_name", type=str, default=None, help="Path to saved model")
+    parser.add_argument("--saved_model_path", type=str, default=None, help="Path to saved model")
     parser.add_argument("--model_name", type=str, default='pilotnet', help="Model name")
-    parser.add_argument("--saved_model_path", type=str, help="Path to the saved model")
-    parser.add_argument("--OpenVINO", type=bool, default=False, help="Use OpenVINO or not")
+    parser.add_argument("--OpenVINO", action='store_true', help="Use OpenVINO or not")
 
     args = parser.parse_args()
     return args
@@ -62,6 +59,11 @@ elif model_name == 'efficientnet_v2':
     model = models.efficientnet_v2_s(weights=None)
     num_ftrs = model.classifier[-1].in_features
     model.classifier[-1] = torch.nn.Linear(num_ftrs, 2)
+elif model_name == 'fastvit':
+    model = timm.create_model("fastvit_sa12")
+    num_ftrs=model.head.fc.in_features
+    model.head.fc= torch.nn.Linear(num_ftrs,2)
+
 
 model.to(device)
 
@@ -102,21 +104,15 @@ def user_main():
     #crop image
     if height > 100:
         
-        cropped_image = image[240:480, 0:640]
+        cropped_image = image[120:480, 0:640]
 
         resized_image = cv2.resize(cropped_image, (int(input_size[1]), int(input_size[0])))
 
-        """
+        
         # Display cropped image
-
-        #cv2.imshow("cropped", resized_image)
+        #cv2.imshow("cropped", cropped_image)
         #cv2.waitKey(1)
-        input_tensor = resized_image.reshape((1, 3, input_size[0], input_size[1])).astype(np.float32)
-        # Inference (min 20hz max 200hz)
-        ort_inputs = {ort_session.get_inputs()[0].name: input_tensor}
-        output = ort_session.run(None, ort_inputs)[0][0]
-        print(output)
-        """
+        
 
         input_tensor = preprocess(resized_image).to(device)
         input_batch = input_tensor.unsqueeze(0)
@@ -128,7 +124,7 @@ def user_main():
             output = model(input_batch)
             v = output[0].detach().numpy()[0]
             w = output[0].detach().numpy()[1]
-
+        #print(output)
         HAL.setV(v)
         HAL.setW(w)
 

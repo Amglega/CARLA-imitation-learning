@@ -5,7 +5,9 @@ MobileNetLarge,True,22.33,63.66,26.53
 MobileNetLarge,False,23.63,61.74,27.0
 ResNet,True,75.53,121.56,76.13
 ResNet,False,72.30,123.20,80.84
-EfficientNet,True,189.48,504.278,207.96
-EfficientNet,False,188.72,608.91,252.49
-PilotNet,True,11.47,41.51,18.66
+PilotNet,True,11.47,41.51 ,17.66
 PilotNet,False,12.89,38.25,19.23
+EfficientVit,True,16.2,30.349,20.18
+EfficientVit,False,65,110.90,66.90 
+FastVit,True,15.7,33.4,26.9
+FastVit,False,28.59,89.49,44.33

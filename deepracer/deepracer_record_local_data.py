@@ -1,13 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-
-# This script enables recording of images and acruation data (throttle and angle) from the DeepRacer car.
-# It subscribes to the /ctrl_pkg/servo_msg topic to receive the ServoCtrlMsg messages containing throttle and angle data.
-# When a ServoCtrlMsg is received, it captures an image from the camera, saves it to a dataset directory, and logs the corresponding throttle and angle values in a CSV file.
-# The recording can be started and stopped by publishing a Bool message to the /start_record topic. 
-# When the Bool message is True, recording starts; when it is False, recording stops.
-# The script also displays the camera feed in a separate window, allowing the user to see what is being recorded. 
-
 import os
 import sys
 import signal
@@ -28,6 +20,12 @@ from deepracer_interfaces_pkg.msg import ServoCtrlMsg
 from std_msgs.msg import Bool
 
 
+
+img_shape=(640, 480)
+K=np.array([[502.4827132565883, 0.0, 320.49002418357725], [0.0, 502.4546524395416, 238.255941996664], [0.0, 0.0, 1.0]])
+D=np.array([[-0.08703736838521056], [-0.2917938213212864], [0.6776229437062419], [-0.3476415479534463]])
+map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, img_shape, cv2.CV_16SC2)
+
 class DeepRacerRecorder(Node):
     """ROS 2 node that subscribes to ServoCtrlMsg and records images with telemetry data"""
     
@@ -45,7 +43,7 @@ class DeepRacerRecorder(Node):
         # Initialize CSV writer
         self.csv_file = open(os.path.join(self.dataset_path, "data.csv"), "w", newline='')
         self.csv_writer = csv.writer(self.csv_file)
-        self.csv_writer.writerow(['image_name', 'v', 'w'])
+        self.csv_writer.writerow(['image_name', 'throttle', 'steer'])
         self.csv_file.flush()
         
         # Use shared camera or create a new one
@@ -108,7 +106,6 @@ class DeepRacerRecorder(Node):
         """Callback when ServoCtrlMsg is received"""
         if self.stop_recording:
             return
-        
         try:
             # Capture image
             ret, frame = self.cap.read()
@@ -120,12 +117,13 @@ class DeepRacerRecorder(Node):
             self.iteration += 1
             image_name = f"{self.iteration}.png"
             image_path = os.path.join(self.dataset_path, image_name)
-            cv2.imwrite(image_path, frame)
+            undistorted_img = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+            cv2.imwrite(image_path, undistorted_img)
             
             # Extract throttle and angle values from ServoCtrlMsg
             throttle = msg.throttle  # linear speed (v)
             angle = msg.angle        # angular speed (w)
-            
+            #print(angle)
             # Write to CSV
             self.csv_writer.writerow([image_name, throttle, angle])
             self.csv_file.flush()
@@ -157,8 +155,8 @@ def display_camera_feed(cap, stop_event):
             if not ret:
                 print("Failed to capture frame from camera")
                 break
-            
-            cv2.imshow(window_name, frame)
+            undistorted_img = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+            cv2.imshow(window_name, undistorted_img)
             
             # Check for 'q' key press (waitKey needs at least 1ms)
             key = cv2.waitKey(1)

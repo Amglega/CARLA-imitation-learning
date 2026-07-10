@@ -44,6 +44,7 @@ def parse_args():
     parser.add_argument("--print_terminal", type=bool, default=False, help="Print progress in terminal")
     parser.add_argument("--seed", type=int, default=46, help="Seed for reproducing results")
     parser.add_argument("--model", type=str, default='pilotnet', help="Model to train")
+    parser.add_argument("--model_path", type=str, default=None, help="Path to pre-trained model")
     parser.add_argument("--pretrained", type=bool, default=False, help="Specify if the model pretrained weights are loaded")
 
     args = parser.parse_args()
@@ -134,7 +135,10 @@ if __name__=="__main__":
     if os.path.isfile( model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed)):
         model.load_state_dict(torch.load(model_save_dir + '/' + model_name + '_model_{}.pth'.format(random_seed),map_location=device,weights_only=True))
         best_model = deepcopy(model)
-
+    elif args.model_path is not None and os.path.isfile(args.model_path):
+        model.load_state_dict(torch.load(args.model_path,map_location=device,weights_only=True))
+        best_model = deepcopy(model)
+        
     # CSV loss log
     self_path = os.getcwd()
     writer_output = csv.writer(open(self_path + '/train_data_' + model_name + '_{}'.format(random_seed) + '.csv', "w"))

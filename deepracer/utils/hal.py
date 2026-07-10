@@ -1,22 +1,21 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-# This module provides a Hardware Abstraction Layer (HAL) for the DeepRacer, 
-# allowing users to interact with the robot's actuators and sensors without needing to manage the underlying ROS 2 communication. 
-# It includes functions for setting and getting linear and angular velocities, as well as retrieving camera images.
 
 import rclpy # Python library for ROS 2
 from rclpy.node import Node # Handles the creation of nodes
 from deepracer_interfaces_pkg.msg import ServoCtrlMsg
+from deepracer_interfaces_pkg.srv import SetMaxSpeedSrv
 from sensor_msgs.msg import Image
-from std_msgs.msg import String, Bool
 from rclpy.executors import MultiThreadedExecutor
+import numpy as np
+import cv2
+from cv_bridge import CvBridge # Package to convert between ROS and OpenCV Images
+import math
+from std_msgs.msg import String
 import time
 from datetime import datetime
 from utils.constants import *
 
 
-FREQUENCY = 60
+FREQUENCY = 120
 
 class DeepRacerNode(Node):
 
@@ -29,6 +28,7 @@ class DeepRacerNode(Node):
         self.timer = self.create_timer(1/frecuency, self.timer_callback)
 
         #camera atributes:
+        
         self.vid = cv2.VideoCapture(0)
         self.image = np.zeros((3, 3, 3), np.uint8)
         self.img_shape = (640, 480)
@@ -45,17 +45,13 @@ class DeepRacerNode(Node):
             steering (float): Angle value to be published to servo.
             throttle (float): Throttle value to be published to servo.
         """
-
-        throttle = self.target_linear
-        if self.target_linear < 0:
-            throttle = -0.4
-        elif self.target_linear > ActionValues().MAX_THROTTLE_OUTPUT :
+	throttle = self.target_linear
+	
+        if abs(self.target_linear) > ActionValues().MAX_THROTTLE_OUTPUT :
             throttle = ActionValues().MAX_THROTTLE_OUTPUT * math.copysign(1.0, self.target_linear)
-        elif self.target_linear < ActionValues().MIN_THROTTLE_OUTPUT:
-            throttle = 0.0
+        elif self.target_linear > 0 and self.target_linear < ActionValues().MIN_THROTTLE_OUTPUT:
+            throttle = ActionValues().MIN_THROTTLE_OUTPUT
 
-   
-       
         # Set the direction.
         steering = self.target_rot
         
@@ -89,7 +85,7 @@ class DeepRacerNode(Node):
             num: angular speed
         """
         self.target_rot = num
-        
+    
     def action_publish(self, target_steer, target_speed):
         """Function publishes the action and sends it to servo.
 
@@ -141,7 +137,6 @@ def setV(num):
 def setW(num):
     deepracer_node.set_W(num)
 
-
 def getImage():
     return deepracer_node.getImage()
 
@@ -169,13 +164,14 @@ def main(user_main=None,n_threads=1,args=None):
             
             user_main()
             executor.spin_once()
-            
+            """
             finish_time = datetime.now()
             dt = finish_time - start_time
             ms = (dt.days * 24 * 60 * 60 + dt.seconds) * 1000 + dt.microseconds / 1000.0
 
             if(ms < time_cycle):
-                time.sleep((time_cycle - ms) / 1000.0)          
+                time.sleep((time_cycle - ms) / 1000.0) 
+            """         
     except KeyboardInterrupt:
         pass
     finally:

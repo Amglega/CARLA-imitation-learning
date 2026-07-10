@@ -43,11 +43,10 @@ class DeepRacerNode(Node):
         """
 
         throttle = self.target_linear
-        if self.target_linear < 0:
-            throttle = -0.4
-        elif self.target_linear > ActionValues().MAX_THROTTLE_OUTPUT :
+        
+        if  abs(self.target_linear) > ActionValues().MAX_THROTTLE_OUTPUT :
             throttle = ActionValues().MAX_THROTTLE_OUTPUT * math.copysign(1.0, self.target_linear)
-        elif self.target_linear < ActionValues().MIN_THROTTLE_OUTPUT:
+        elif self.target_linear > 0 and self.target_linear < ActionValues().MIN_THROTTLE_OUTPUT:
             throttle = 0.0
 
    

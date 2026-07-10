@@ -341,7 +341,7 @@ class DeepRacerMetrics:
             if self.display is not None:
                 # change RGB to BGR and display on pygame window
                 rgb_frame = cv.cvtColor(frame, cv.COLOR_RGB2BGR)
-                cv.circle(rgb_frame,(cx,cy),20,color=(255,255,255),thickness=3)
+                #cv.circle(rgb_frame,(cx,cy),20,color=(255,255,255),thickness=3)
                 surf = pygame.surfarray.make_surface(np.transpose(rgb_frame, (1, 0, 2)))
                 self.display.blit(surf, (0, 0))
                 pygame.display.update()
